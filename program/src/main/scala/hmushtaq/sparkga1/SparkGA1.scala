@@ -57,74 +57,30 @@ final val downloadSAMFileInLB = true
 final val doIndelRealignment = true
 final val doPrintReads = true
 //////////////////////////////////////////////////////////////////////////////
-def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (String, Long, Int, Int, String))]) = 
+def samRun(x: String, config: Configuration) : (Array[((Integer, Integer), (String, Long, Int, Int, String))]) = 
 {
-	val blockSize = 4096 * 1024; 
-	var input_file = ""
+	val blockSize = 4096 * 1024
 	val tmpDir = config.getTmpFolder
 	val hdfsManager = new HDFSManager
 	
 	var t0 = System.currentTimeMillis
 	
-	if (config.getMode != "local")
-	{
-		if (writeToLog == true)
-			hdfsManager.create(config.getOutputFolder + "log/bwa/" + x)
-		
-		if (!(new File(config.getTmpFolder).exists))
-			new File(config.getTmpFolder).mkdirs()
-		
-		dbgLog("bwa/" + x, t0, "0a\tDownloading from the HDFS", config)
-		hdfsManager.download(x + ".gz", config.getInputFolder, tmpDir, false)
-		input_file = tmpDir + x + ".gz"
-		if (downloadNeededFiles)
-		{
-			dbgLog("bwa/" + x, t0, "*\tDownloading reference files and the bwa program", config)
-			downloadBWAFiles("bwa/" + x, config)
-		}
-		hdfsManager.downloadIfRequired("bwa", config.getToolsFolder(), config.getTmpFolder)
-		val file = new File(tmpDir + "bwa") 
-		file.setExecutable(true)
-	}
-	else
-	{
-		input_file = config.getInputFolder + x + ".gz"
-		val file = new File(config.getOutputFolder + "log/bwa")
-		if ((writeToLog == true) && !file.exists())
-			file.mkdir()
-	}
+	if (writeToLog == true)
+		hdfsManager.create(config.getOutputFolder + "log/sam/" + x)
+			
+	dbgLog("sam/" + x, t0, "0\tReading from the HDFS", config)
+	hdfsManager.download(x + ".sam", config.getInputFolder, tmpDir, false)
+	val content = readWholeFile(config.getInputFolder + x + ".sam", config)
+	val lines = content.split('\n')
 	
-	// unzip the input .gz file
-	var fqFileName = tmpDir + x
-	val unzipStr = "gunzip -c " + input_file
-	dbgLog("bwa/" + x, t0, "0b\t" + unzipStr, config)
-	unzipStr #> new java.io.File(fqFileName) !;
-	if (config.getMode != "local")
-		new File(input_file).delete()
-	
-	// run bwa mem
-	val progName = getBinToolsDirPath(config) + "bwa mem "
-	val outFileName = tmpDir + "out_" + x
-	val nthreads = config.getNumThreads.toInt
-	// Example: bwa mem input_files_directory/fasta_file.fasta -p -t 2 x.fq > out_file
-	val command_str = progName + getRefFilePath(config) + " " + config.getExtraBWAParams + " -t " + nthreads.toString + " " + fqFileName
-	dbgLog("bwa/" + x, t0, "1\tbwa mem started, RGID = " + config.getRGID + " -> " + command_str, config)
-	var writerMap = new HashMap[(Integer, Integer), SamRegion]()
+	dbgLog("sam/" + x, t0, "1\tParsing sam file for regions", config)
 	val samRegionsParser = new SamRegionsParser(x, writerMap, config)
-	val logger = ProcessLogger(
-		(o: String) => {
-			samRegionsParser.append(o)
-			},
-		(e: String) => {} // do nothing
-	)
-	command_str ! logger;
-	new File(fqFileName).delete()
-	
+	for(line <- lines)
+		samRegionsParser.append(line)
+		
 	val res = ArrayBuffer.empty[((Integer, Integer), (String, Long, Int, Int, String))]
-	makeDirIfRequired(config.getOutputFolder + "samChunks", config)
-	makeDirIfRequired(config.getOutputFolder + "bwaPos", config)
 	
-	dbgLog("bwa/" + x, t0, "2\tUploading SAM Files to the HDFS. reads = " + samRegionsParser.getNumOfReads + ", bad lines = " + samRegionsParser.getBadLines, config)
+	dbgLog("sam/" + x, t0, "2\tUploading SAM Files to the HDFS. reads = " + samRegionsParser.getNumOfReads + ", bad lines = " + samRegionsParser.getBadLines, config)
 	var currentNum = 1
 	var outStr = new StringBuilder
 	var dbgStr = new StringBuilder
@@ -1346,7 +1302,7 @@ def main(args: Array[String])
 	//////////////////////////////////////////////////////////////////////////
 	if (part == 1)
 	{ 
-		val inputArray = getInputFileNames(config.getInputFolder, config).map(x => x.replace(".gz", ""))  
+		val inputArray = getInputFileNames(config.getInputFolder, config).filter(x => x.contains(".sam")).map(x => x.replace(".sam", ""))   
 		if (inputArray == null)
 		{
 			println("The input directory does not exist!")
@@ -1360,7 +1316,7 @@ def main(args: Array[String])
 	
 		// Run instances of bwa and get the output as Key Value pairs
 		// <(chr, reg), fname>
-		val bwaOutput = inputData.flatMap(x => bwaRun(x, bcConfig.value))
+		val bwaOutput = inputData.flatMap(x => samRun(x, bcConfig.value))
 		var bwaOutStr = new StringBuilder
 		for(e <- bwaOutput.collect)
 		{
