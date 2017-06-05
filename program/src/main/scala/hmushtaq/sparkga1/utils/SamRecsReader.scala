@@ -1,22 +1,36 @@
+/*
+ * Copyright (C) 2016-2017 Hamid Mushtaq, TU Delft
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package hmushtaq.sparkga1.utils
+
 import java.io.File
 import java.io.InputStream
 import java.io.FileInputStream
 import java.util._
 import htsjdk.samtools.util.BufferedLineReader
 import htsjdk.samtools._
-import tudelft.utils._
-import tudelft.utils.Configuration
 
-class BWAKeyValues(filePath: String, config: Configuration)
+class SamRecsReader(is: InputStream, config: Configuration)
 {
-	val keyValues = scala.collection.mutable.ArrayBuffer.empty[(Integer, SAMRecord)]
-	val mConfig = config
-	var mReads = 0
-	val mFile = new File(filePath);
-	val is = new FileInputStream(mFile);
-    val validationStringency: ValidationStringency = ValidationStringency.LENIENT;
-    val mReader = new BufferedLineReader(is);
-    val samRecordFactory = new DefaultSAMRecordFactory();
+	private val keyValues = scala.collection.mutable.ArrayBuffer.empty[(Integer, SAMRecord)]
+	private val mConfig = config
+	private var mReads = 0
+    private val validationStringency: ValidationStringency = ValidationStringency.LENIENT;
+    private val mReader = new BufferedLineReader(is);
+    private val samRecordFactory = new DefaultSAMRecordFactory();
 	private var mCurrentLine: String = null
 	
 	def getKeyValuePairs() : Array[(Integer, SAMRecord)] = 
@@ -71,8 +85,8 @@ class BWAKeyValues(filePath: String, config: Configuration)
 		var mParentReader: SAMFileReader = null
         val headerCodec = new SAMTextHeaderCodec();
         headerCodec.setValidationStringency(validationStringency)
-        val mFileHeader = headerCodec.decode(mReader, mFile.toString())
-        val parser = new SAMLineParser(samRecordFactory, validationStringency, mFileHeader, mParentReader, mFile)
+        val mFileHeader = headerCodec.decode(mReader, null)
+        val parser = new SAMLineParser(samRecordFactory, validationStringency, mFileHeader, null, null)
         // now process each read...
         var count = 0
 		var badLines = 0
@@ -80,9 +94,8 @@ class BWAKeyValues(filePath: String, config: Configuration)
         mCurrentLine = mReader.readLine()
 		
 		if (mCurrentLine == null)
-			println("Hamid >> " + mFile.getName + ": mCurrentLine is null!")
-		println("Hamid >> " + mFile.getName + ": mCurrentLine is fine!")
-        
+			println("Hamid >> mCurrentLine is null!")
+		
 		while (mCurrentLine != null) 
 		{
 			try
@@ -90,7 +103,7 @@ class BWAKeyValues(filePath: String, config: Configuration)
 			val samrecord = parser.parseLine(mCurrentLine, mReader.getLineNumber())
 			
 			if ((count % 500000) == 0)
-				println("Hamid >> " + mFile.getName + ": " + count + " records parsed.")
+				println("Hamid >> " + count + " records parsed.")
 			
 			if (writerMap == null)
 				count += writeSAMRecord(samrecord)
@@ -106,7 +119,7 @@ class BWAKeyValues(filePath: String, config: Configuration)
 		}
         
 		mReads = count
-        System.out.println("SAMstream counts " + count + " records");
+        println("SAMstream counts " + count + " records");
 	
 		return badLines
     }

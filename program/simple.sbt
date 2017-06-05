@@ -1,4 +1,4 @@
-name := "DNASeqAnalyzer"
+name := "SparkGA1"
 
 version := "1.0"
 

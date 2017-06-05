@@ -1,8 +1,21 @@
-/****************************************/
-//	Program:	DNASeqAnalyzer.scala	
-//	Author:		Hamid Mushtaq  		
-//	Company:	TU Delft	 	
-/****************************************/
+/*
+ * Copyright (C) 2016-2017 Hamid Mushtaq, TU Delft
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package hmushtaq.sparkga1
+
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
@@ -25,7 +38,7 @@ import scala.concurrent.Future
 import scala.concurrent.forkjoin._
 import scala.util.Random
 
-import tudelft.utils._
+import utils._
 
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.spark.storage.StorageLevel._
@@ -34,7 +47,7 @@ import org.apache.spark.HashPartitioner
 import htsjdk.samtools.util.BufferedLineReader
 import htsjdk.samtools._
 
-object DNASeqAnalyzer 
+object SparkGA1
 {
 final val saveAllStages = false
 final val writeToLog = true
@@ -328,7 +341,7 @@ def makeBAMFiles(chrRegion: (Integer, Integer), files: Array[(String, Long, Int,
 			val content = readPartialFile(config.getOutputFolder + "samChunks/" + fileInfo(0), fileInfo(2).toInt, config).slice(fileInfo(1).toInt, fileInfo(2).toInt)
 			
 			// Get sam records from the chunk
-			val bwaKeyValues = new BWAKeyValuesString(new StringBufferInputStream(content), config)	
+			val bwaKeyValues = new SamRecsReader(new StringBufferInputStream(content), config)	
 			bwaKeyValues.parseSam(null)
 			val kvPairs: Array[(Integer, SAMRecord)] = bwaKeyValues.getKeyValuePairs()
 			bwaKeyValues.close()
@@ -387,7 +400,7 @@ def makeBAMFiles(chrRegion: (Integer, Integer), files: Array[(String, Long, Int,
 					val content = readWholeFile(config.getOutputFolder + "samChunks/" + fileInfo(0), config).slice(fileInfo(1).toInt, fileInfo(2).toInt)
 			
 					// Get sam records from the chunk
-					val bwaKeyValues = new BWAKeyValuesString(new StringBufferInputStream(content), config)			
+					val bwaKeyValues = new SamRecsReader(new StringBufferInputStream(content), config)			
 					bwaKeyValues.parseSam(null)
 					kvPairs = bwaKeyValues.getKeyValuePairs()
 					bwaKeyValues.close()
@@ -398,7 +411,7 @@ def makeBAMFiles(chrRegion: (Integer, Integer), files: Array[(String, Long, Int,
 					hdfsManager.download(fileInfo(0), config.getOutputFolder + "samChunks/", config.getTmpFolder, false)
 					
 					// Get sam records from the chunk
-					val bwaKeyValues = new BWAKeyValues(fname, config)			
+					val bwaKeyValues = new SamRecsReader(new FileInputStream(fname), config)			
 					bwaKeyValues.parseSam(null)
 					kvPairs = bwaKeyValues.getKeyValuePairs()
 					bwaKeyValues.close()
@@ -457,7 +470,7 @@ def makeBAMFiles(chrRegion: (Integer, Integer), files: Array[(String, Long, Int,
 				
 					files.synchronized {dbgLog("lb2/" + chr + "_" + reg, t0, "4a\tReads in segment " + a + " = " + readsWritten(a), config)}
 					// Get sam records from the segment
-					val bwaKeyValues = new BWAKeyValues(inputFile, config)
+					val bwaKeyValues = new SamRecsReader(new FileInputStream(inputFile), config)
 					bwaKeyValues.parseSam(null)
 					val samRecords: Array[(Integer, SAMRecord)] = bwaKeyValues.getKeyValuePairs()
 					bwaKeyValues.close()
@@ -571,7 +584,7 @@ def writeToBAMAndBed(chrRegion: String, samRecords: Array[(Integer, SAMRecord)],
 	val factory = new SAMFileWriterFactory()
 	val writer = factory.makeBAMWriter(header, true, new File(tmpFileBase + "-p1.bam"))
 	val r = new ChromosomeRange()
-	val input = new tudelft.utils.SAMRecordIterator(samRecords, header, r, startIndex, endIndex)
+	val input = new utils.SAMRecordIterator(samRecords, header, r, startIndex, endIndex)
 	val RGID = config.getRGID
 	var count = 0
 	var badLines = 0
@@ -1259,7 +1272,7 @@ def main(args: Array[String])
 	val config = new Configuration()
 	config.initialize(args(0), args(1))
 	val part = args(1).toInt
-	val conf = new SparkConf().setAppName("DNASeqAnalyzer")
+	val conf = new SparkConf().setAppName("SparkGA1")
 	
 	if (config.getMode == "local")
 	{

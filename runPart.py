@@ -19,7 +19,7 @@ if len(sys.argv) < 3:
 	print("Example of usage: ./run2.py config.xml 1")
 	sys.exit(1)
 
-exeName = "program/dnaseqanalyzer_2.11-1.0.jar"
+exeName = "program/sparkga1_2.11-1.0.jar"
 logFile = "time.txt"
 configFilePath = sys.argv[1]
 partNumber = sys.argv[2]
@@ -68,7 +68,7 @@ def executeHadoop(part, ni, em, extra_param):
 	
 	cmdStr = "$SPARK_HOME/bin/spark-submit " + \
 	"--jars lib/htsjdk-1.143.jar " + \
-	"--class \"DNASeqAnalyzer\" --master " + diff_str + " " + \
+	"--class \"hmushtaq.sparkga1.SparkGA1\" --master " + diff_str + " " + \
 	"--driver-memory " + driver_mem + " --executor-memory " + em + " " + \
 	"--num-executors " + ni + " --executor-cores " + numTasks + " " + \
 	exeName + " " + os.path.basename(configFilePath) + " " + str(part) + extra_param

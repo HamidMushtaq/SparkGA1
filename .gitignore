@@ -1,1 +1,5 @@
 /program/compileWin.bat
+/program/target/streams
+/program/target/resolution-cache
+/program/target/scala-2.11/classes
+/program/project
