@@ -1346,7 +1346,7 @@ def main(args: Array[String])
 	//////////////////////////////////////////////////////////////////////////
 	if (part == 1)
 	{ 
-		val inputArray = getInputFileNames(config.getInputFolder, config).map(x => x.replace(".gz", ""))  
+		val inputArray = getInputFileNames(config.getInputFolder, config).filter(x => x.contains(".fq")).map(x => x.replace(".gz", ""))  
 		if (inputArray == null)
 		{
 			println("The input directory does not exist!")
