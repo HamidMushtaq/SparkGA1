@@ -60,6 +60,7 @@ final val doPrintReads = true
 def samRun(x: String, config: Configuration) : (Array[((Integer, Integer), (String, Long, Int, Int, String))]) = 
 {
 	val blockSize = 4096 * 1024
+	val READ_WHOLE_FILE = false
 	val tmpDir = config.getTmpFolder
 	val hdfsManager = new HDFSManager
 	
@@ -68,16 +69,31 @@ def samRun(x: String, config: Configuration) : (Array[((Integer, Integer), (Stri
 	if (writeToLog == true)
 		hdfsManager.create(config.getOutputFolder + "log/sam/" + x)
 			
-	dbgLog("sam/" + x, t0, "0\tReading from the HDFS", config)
-	hdfsManager.download(x + ".sam", config.getInputFolder, tmpDir, false)
-	val content = readWholeFile(config.getInputFolder + x + ".sam", config)
-	val lines = content.split('\n')
-	
-	dbgLog("sam/" + x, t0, "1\tParsing sam file for regions", config)
+	var writerMap = new HashMap[(Integer, Integer), SamRegion]()
 	val samRegionsParser = new SamRegionsParser(x, writerMap, config)
-	for(line <- lines)
-		samRegionsParser.append(line)
-		
+	if (READ_WHOLE_FILE)
+	{
+		dbgLog("sam/" + x, t0, "0\tReading from the HDFS", config)
+		val content = readWholeFile(config.getInputFolder + x + ".sam", config)
+		val lines = content.split('\n')
+	
+		dbgLog("sam/" + x, t0, "1\tParsing sam file for regions", config)
+		for(line <- lines)
+			samRegionsParser.append(line)
+	}
+	else
+	{
+		dbgLog("sam/" + x, t0, "0\tReading and parsing from the HDFS", config)
+		val br = hdfsManager.openBufReader(config.getInputFolder + x + ".sam")
+		var line = br.readLine
+		while(line != null)
+		{
+			samRegionsParser.append(line)
+			line = br.readLine
+		}
+		br.close
+	}
+	
 	val res = ArrayBuffer.empty[((Integer, Integer), (String, Long, Int, Int, String))]
 	
 	dbgLog("sam/" + x, t0, "2\tUploading SAM Files to the HDFS. reads = " + samRegionsParser.getNumOfReads + ", bad lines = " + samRegionsParser.getBadLines, config)
@@ -144,7 +160,7 @@ def samRun(x: String, config: Configuration) : (Array[((Integer, Integer), (Stri
 	writeWholeFile(config.getOutputFolder + "bwaPos/pos_" + x + "-" + posCurrentNum, posOutStr.toString, config)
 	dbgStr.append("\n" + (System.currentTimeMillis - t1).toString)
 	//dbgLog("bwa/" + x, t0, "*\tTime taken by each loop iteration for chunk making step = " + dbgStr, config)
-	dbgLog("bwa/" + x, t0, "3\tSAM files uploaded to the HDFS. positions files = " + posCurrentNum + ", sam files = " + currentNum, config)
+	dbgLog("sam/" + x, t0, "3\tSAM files uploaded to the HDFS. positions files = " + posCurrentNum + ", sam files = " + currentNum, config)
 
 	return res.toArray
 }

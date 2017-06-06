@@ -79,6 +79,21 @@ public class HDFSManager
         }
 	}
 	
+	public BufferedReader openBufReader(String fname)
+	{
+		try
+		{
+			Path filePath = new Path(fname);  
+		
+			return new BufferedReader(new InputStreamReader(fs.open(filePath)));
+		}
+		catch (IOException ex) 
+		{
+            ex.printStackTrace();
+			return null;
+        }
+	}
+	
 	public boolean exists(String fname)
 	{
 		try
