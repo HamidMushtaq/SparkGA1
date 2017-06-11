@@ -522,19 +522,6 @@ def binarySearch(arr: Array[Int], starti: Int, endi: Int, x: Int) : Int =
 		return binarySearch(arr, guess+1, endi, x) 
 }
 
-def isInIgnoreList(chrName: String, config: Configuration) : Boolean =
-{
-	val ignoreList = config.getIgnoreList.trim;
-
-	if (ignoreList.isEmpty)
-		return false;
-	
-	val a = ignoreList.split(",")
-	val b = a.map(x => x.trim)
-	
-	return b.contains(chrName)
-}
-
 def writeToBAMAndBed(chrRegion: String, samRecords: Array[(Integer, SAMRecord)], startIndex: Int, endIndex: Int, config: Configuration) : 
 	Integer =
 {
@@ -562,7 +549,7 @@ def writeToBAMAndBed(chrRegion: String, samRecords: Array[(Integer, SAMRecord)],
 
 	var t0 = System.currentTimeMillis
 	
-	if (isInIgnoreList(samRecords(0)._2.getReferenceName, config))
+	if (config.isInIgnoreList(samRecords(0)._2.getReferenceName))
 	{
 		dbgLog("lb" + part + "/region_" + chrRegion, t0, "0\tChromosome " + samRecords(0)._2.getReferenceName + 
 			" is being ignored!", config);
@@ -1315,7 +1302,7 @@ def main(args: Array[String])
 	var t0 = System.currentTimeMillis
 	val numOfRegions = config.getNumRegions.toInt
 	// Spark Listener
-	sc.addSparkListener(new SparkListener() 
+	/*sc.addSparkListener(new SparkListener() 
 	{
 		override def onApplicationStart(applicationStart: SparkListenerApplicationStart) 
 		{
@@ -1342,7 +1329,7 @@ def main(args: Array[String])
 				}
 			})
 		}
-	});
+	});*/
 	//////////////////////////////////////////////////////////////////////////
 	if (part == 1)
 	{ 
@@ -1406,8 +1393,13 @@ def main(args: Array[String])
 		val avgReadsPerRegion = totalReads / chrReg.count
 		// Hamid
 		statusLog("chrReg: ", t0, "Chr regions:" + chrReg.count + ", Total reads: " + avgReadsPerRegion, config)
+		// Previously
 		// <(chr, reg), (fname, segments)>
-		val loadBalRegions = chrReg.map(x => makeBAMFiles(x._1, x._2.toArray, avgReadsPerRegion, bcConfig.value))
+		//val loadBalRegions = chrReg.map(x => makeBAMFiles(x._1, x._2.toArray, avgReadsPerRegion, bcConfig.value))
+		// Now
+		val chrRegByReads = chrReg.map(x => (x._1, x._2, x._2.map(_._2).reduce(_+_))).sortBy(_._3, false)
+		val loadBalRegions = chrRegByReads.map(x => makeBAMFiles(x._1, x._2.toArray, avgReadsPerRegion, bcConfig.value))
+		//////////////////////////////////////////////////////////////////////
 		val x = loadBalRegions.collect
 		var regions1Str = new StringBuilder
 		var segmentsStr = new StringBuilder
@@ -1440,9 +1432,18 @@ def main(args: Array[String])
 			inputFileNames = getInputFileNames(config.getOutputFolder + "bed/", config).map(x => x.replace(".bed", ""))
 		else 
 			inputFileNames = getInputFileNames(config.getTmpFolder, config).filter(x => x.contains(".bed")).map(x => x.replace(".bed", ""))
-		inputFileNames.foreach(println)
 		
-		val inputData = sc.parallelize(inputFileNames, inputFileNames.size)
+		//////////////////////////////////////////////////////////////////////
+		// Previously
+		//inputFileNames.foreach(println)
+		//val inputData = sc.parallelize(inputFileNames, inputFileNames.size)
+		
+		// Now
+		val inputFileNamesWithSize = inputFileNames.map(x => (x, hdfsManager.getFileSize(config.getOutputFolder + "bam/" + x + "-p1.bam")))
+		val fileNamesBySize = inputFileNamesWithSize.sortWith(_._2 > _._2).map(_._1)
+		fileNamesBySize.foreach(println)
+		val inputData = sc.parallelize(fileNamesBySize, fileNamesBySize.size)
+		//////////////////////////////////////////////////////////////////////
 		inputData.setName("rdd_inputData")
 		val vcf = inputData.map(x => variantCall(x, bcConfig.value)).flatMap(x=> getVCF(x._1, bcConfig.value))
 		vcf.setName("rdd_vcc")

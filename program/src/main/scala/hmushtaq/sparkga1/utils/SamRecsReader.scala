@@ -43,7 +43,7 @@ class SamRecsReader(is: InputStream, config: Configuration)
         var count = 0
         val read1Ref = sam.getReferenceIndex()
 		
-		if (!sam.getReadUnmappedFlag() && (read1Ref >= 0) && (read1Ref <= 24))
+		if (!sam.getReadUnmappedFlag() && (read1Ref >= 0))
 		{
 			val region = sam.getAlignmentStart / mConfig.getChrRegionSize(read1Ref)
 		
@@ -60,7 +60,7 @@ class SamRecsReader(is: InputStream, config: Configuration)
         var count = 0
         val chr = sam.getReferenceIndex()
 		
-		if (!sam.getReadUnmappedFlag() && (chr >= 0) && (chr <= 24))
+		if (!sam.getReadUnmappedFlag() && (chr >= 0))
 		{
 			val reg = sam.getAlignmentStart / mConfig.getChrRegionSize(chr)
 			
@@ -102,7 +102,7 @@ class SamRecsReader(is: InputStream, config: Configuration)
 			{
 			val samrecord = parser.parseLine(mCurrentLine, mReader.getLineNumber())
 			
-			if ((count % 500000) == 0)
+			if ((count != 0) && ((count % 500000) == 0))
 				println("Hamid >> " + count + " records parsed.")
 			
 			if (writerMap == null)

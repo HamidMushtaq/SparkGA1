@@ -42,10 +42,13 @@ class SamRegionsParser(chunkID: String, writerMap: scala.collection.mutable.Hash
 			if (fields(2) == "*")
 				return 1
 				
+			if (config.isInIgnoreList(fields(2)))
+				return 1
+				
 			val chr = config.getChrIndex(fields(2))
 			val chrPos = fields(3).toInt
 			
-			if ((chr >= 0) && (chr <= 24))
+			if (chr >= 0)
 			{
 				val reg = chrPos / config.getChrRegionSize(chr)
 				

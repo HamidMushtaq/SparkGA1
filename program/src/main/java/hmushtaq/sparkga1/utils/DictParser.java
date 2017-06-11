@@ -27,10 +27,16 @@ import java.util.*;
 public class DictParser
 {	
 	SAMSequenceDictionary dict;
-	int[] chrLenArray;
+	ArrayList<Integer> chrLenArray;
 	int[] chrRegionSizeArray;
 	long chrLenSum;
 	private HashMap<String, Integer> chrNameMap;
+	private HashSet<String> ignoreListSet;
+	
+	public DictParser(HashSet<String> ilSet)
+	{
+		ignoreListSet = ilSet;
+	}
 	
 	private String getLine(FileInputStream stream) throws IOException 
 	{
@@ -54,30 +60,30 @@ public class DictParser
 		}
 	}
 	
-	public long getChrLenSun()
+	public long getChrLenSum()
 	{
 		return chrLenSum;
 	}
 	
-	public int[] getChrLenArray()
+	public ArrayList<Integer> getChrLenArray()
 	{
 		return chrLenArray;
 	}
 	
 	void setChrRegionsSizes(int regions)
 	{
-		chrRegionSizeArray = new int[25];
+		chrRegionSizeArray = new int[chrLenArray.size()];
 		int avgRegionSize = (int)(chrLenSum / regions);
 		
-		for(int i = 0; i < 25; i++)
+		for(int i = 0; i < chrLenArray.size(); i++)
 		{
-			int segments = chrLenArray[i] / avgRegionSize;
+			int segments = chrLenArray.get(i) / avgRegionSize;
 		
 			if (segments == 0)
 				segments = 1;
 		
-			chrRegionSizeArray[i] = chrLenArray[i] / segments;
-			System.out.println("Hamid: chr" + i + " avgRegionSize = " + avgRegionSize + ", chrLen = " + chrLenArray[i]);
+			chrRegionSizeArray[i] = chrLenArray.get(i) / segments;
+			System.out.println("Hamid: chr" + i + " avgRegionSize = " + avgRegionSize + ", chrLen = " + chrLenArray.get(i));
 			System.out.println("Hamid: chr" + i + " -> segments = " + segments + ", region size = " + chrRegionSizeArray[i]);
 		}
 	}
@@ -101,7 +107,7 @@ public class DictParser
 			String line = getLine(stream); // header
 			dict = new SAMSequenceDictionary();
 			line = getLine(stream);
-			chrLenArray = new int[25];
+			chrLenArray = new ArrayList<Integer>();
 			int chrIndex = 0;
 			
 			chrLenSum = 0;
@@ -111,15 +117,15 @@ public class DictParser
 				// @SQ	SN:chrM	LN:16571
 				String[] lineData = line.split("\\s+");
 				String seqName = lineData[1].substring(lineData[1].indexOf(':') + 1);
-				chrNameMap.put(seqName, chrIndex);
+				chrNameMap.put(seqName, chrIndex++);
 				int seqLength = 0;
 				try 
 				{
 					seqLength = Integer.parseInt(lineData[2].substring(lineData[2].indexOf(':') + 1));
-					if (chrIndex <= 24)
+					if (!ignoreListSet.contains(seqName))
 					{
 						chrLenSum += seqLength;
-						chrLenArray[chrIndex++] = seqLength;
+						chrLenArray.add(seqLength);
 					}
 				} 
 				catch(NumberFormatException ex) 
