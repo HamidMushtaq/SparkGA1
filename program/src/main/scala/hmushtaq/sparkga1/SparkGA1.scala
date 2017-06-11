@@ -965,13 +965,7 @@ def getVCF(chrRegion: String, config: Configuration) : Array[((Integer, Integer)
 			val e = line.split('\t')
 			val position = e(1).toInt
 			var chromosome = e(0)
-			var chrNumber = 0
-			
-			if (e(0).contains("chr"))
-				chromosome = e(0).substring(3)
-			
-			try{chrNumber = chromosome.toInt}
-			catch{case _: Throwable => chrNumber = if (chromosome.contains('X')) 101 else 102;}
+			var chrNumber = config.getChrIndex(chromosome)
 				
 			a.append(((chrNumber, position), line))
 		}
