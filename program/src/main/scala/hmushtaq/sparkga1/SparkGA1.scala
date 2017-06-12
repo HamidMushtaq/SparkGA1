@@ -56,6 +56,9 @@ final val downloadSAMFileInLB = true
 // Optional stages
 final val doIndelRealignment = true
 final val doPrintReads = true
+// Scheduling
+final val sizeBasedLBScheduling = true
+final val sizeBasedVCScheduling = true
 //////////////////////////////////////////////////////////////////////////////
 def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (String, Long, Int, Int, String))]) = 
 {
@@ -1389,10 +1392,16 @@ def main(args: Array[String])
 		statusLog("chrReg: ", t0, "Chr regions:" + chrReg.count + ", Total reads: " + avgReadsPerRegion, config)
 		// Previously
 		// <(chr, reg), (fname, segments)>
-		//val loadBalRegions = chrReg.map(x => makeBAMFiles(x._1, x._2.toArray, avgReadsPerRegion, bcConfig.value))
-		// Now
-		val chrRegByReads = chrReg.map(x => (x._1, x._2, x._2.map(_._2).reduce(_+_))).sortBy(_._3, false)
-		val loadBalRegions = chrRegByReads.map(x => makeBAMFiles(x._1, x._2.toArray, avgReadsPerRegion, bcConfig.value))
+		val loadBalRegions = 
+		{
+			if (!sizeBasedLBScheduling)
+				chrReg.map(x => makeBAMFiles(x._1, x._2.toArray, avgReadsPerRegion, bcConfig.value))
+			else
+			{
+				val chrRegByReads = chrReg.map(x => (x._1, x._2, x._2.map(_._2).reduce(_+_))).sortBy(_._3, false)
+				chrRegByReads.map(x => makeBAMFiles(x._1, x._2.toArray, avgReadsPerRegion, bcConfig.value))
+			}
+		}
 		//////////////////////////////////////////////////////////////////////
 		val x = loadBalRegions.collect
 		var regions1Str = new StringBuilder
@@ -1428,15 +1437,21 @@ def main(args: Array[String])
 			inputFileNames = getInputFileNames(config.getTmpFolder, config).filter(x => x.contains(".bed")).map(x => x.replace(".bed", ""))
 		
 		//////////////////////////////////////////////////////////////////////
-		// Previously
-		//inputFileNames.foreach(println)
-		//val inputData = sc.parallelize(inputFileNames, inputFileNames.size)
-		
-		// Now
-		val inputFileNamesWithSize = inputFileNames.map(x => (x, hdfsManager.getFileSize(config.getOutputFolder + "bam/" + x + "-p1.bam")))
-		val fileNamesBySize = inputFileNamesWithSize.sortWith(_._2 > _._2).map(_._1)
-		fileNamesBySize.foreach(println)
-		val inputData = sc.parallelize(fileNamesBySize, fileNamesBySize.size)
+		val inputData = 
+		{
+			if (!sizeBasedVCScheduling)
+			{
+				inputFileNames.foreach(println)
+				sc.parallelize(inputFileNames, inputFileNames.size)
+			}
+			else
+			{
+				val inputFileNamesWithSize = inputFileNames.map(x => (x, hdfsManager.getFileSize(config.getOutputFolder + "bam/" + x + "-p1.bam")))
+				val fileNamesBySize = inputFileNamesWithSize.sortWith(_._2 > _._2).map(_._1)
+				fileNamesBySize.foreach(println)
+				sc.parallelize(fileNamesBySize, fileNamesBySize.size)
+			}
+		}
 		//////////////////////////////////////////////////////////////////////
 		inputData.setName("rdd_inputData")
 		val vcf = inputData.map(x => variantCall(x, bcConfig.value)).flatMap(x=> getVCF(x._1, bcConfig.value))
