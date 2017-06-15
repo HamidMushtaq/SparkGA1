@@ -50,8 +50,6 @@ import htsjdk.samtools._
 object SparkGA1
 {
 final val saveAllStages = false
-final val writeToLog = true
-final val downloadNeededFiles = false
 final val downloadSAMFileInLB = true
 // Optional stages
 final val doIndelRealignment = true
@@ -71,8 +69,7 @@ def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (Stri
 	
 	if (config.getMode != "local")
 	{
-		if (writeToLog == true)
-			hdfsManager.create(config.getOutputFolder + "log/bwa/" + x)
+		hdfsManager.create(config.getOutputFolder + "log/bwa/" + x)
 		
 		if (!(new File(config.getTmpFolder).exists))
 			new File(config.getTmpFolder).mkdirs()
@@ -93,7 +90,7 @@ def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (Stri
 	{
 		input_file = config.getInputFolder + x + ".gz"
 		val file = new File(config.getOutputFolder + "log/bwa")
-		if ((writeToLog == true) && !file.exists())
+		if (!file.exists)
 			file.mkdir()
 	}
 	
@@ -228,20 +225,17 @@ def makeBAMFiles(chrRegion: (Integer, Integer), files: Array[(String, Long, Int,
 	val nThreads = config.getNumThreads.toInt
 	val hdfsManager = new HDFSManager
 	
-	if (writeToLog)
+	if (config.getMode() != "local")
 	{
-		if (config.getMode() != "local")
-		{
-			if (segments > 1)
-				hdfsManager.create(config.getOutputFolder + "log/lb2/" + chr + "_" + reg)
-			else
-				hdfsManager.create(config.getOutputFolder + "log/lb/" + chr + "_" + reg)
-		}
+		if (segments > 1)
+			hdfsManager.create(config.getOutputFolder + "log/lb2/" + chr + "_" + reg)
 		else
-		{
-			makeDirIfRequired(config.getOutputFolder + "log/lb", config)
-			makeDirIfRequired(config.getOutputFolder + "log/lb2", config)
-		}
+			hdfsManager.create(config.getOutputFolder + "log/lb/" + chr + "_" + reg)
+	}
+	else
+	{
+		makeDirIfRequired(config.getOutputFolder + "log/lb", config)
+		makeDirIfRequired(config.getOutputFolder + "log/lb2", config)
 	}
 	
 	if ((config.getMode != "local") && !(new File(config.getTmpFolder).exists))
@@ -541,14 +535,11 @@ def writeToBAMAndBed(chrRegion: String, samRecords: Array[(Integer, SAMRecord)],
 	/////////////////////////////
 	var part = if (chrRegion.contains("part")) "2" else "";
 	val hdfsManager = new HDFSManager
-	
-	if (writeToLog)
-	{
-		if (config.getMode != "local")
-			hdfsManager.create(config.getOutputFolder + "log/lb" + part + "/region_" + chrRegion)
-		else
-			makeDirIfRequired(config.getOutputFolder + "log/lb" + part, config)
-	}
+		
+	if (config.getMode != "local")
+		hdfsManager.create(config.getOutputFolder + "log/lb" + part + "/region_" + chrRegion)
+	else
+		makeDirIfRequired(config.getOutputFolder + "log/lb" + part, config)
 
 	var t0 = System.currentTimeMillis
 	
@@ -751,8 +742,7 @@ def processBAM(chrRegion: String, config: Configuration) : Integer =
 	
 	if (config.getMode != "local")
 	{
-		if (writeToLog == true)
-			hdfsManager.create(config.getOutputFolder + "log/" + "region_" + chrRegion)
+		hdfsManager.create(config.getOutputFolder + "log/" + "region_" + chrRegion)
 			
 		if (!(new File(config.getTmpFolder).exists))
 			new File(config.getTmpFolder).mkdirs()
@@ -1085,8 +1075,7 @@ def statusLog(key: String, t0: Long, message: String, config: Configuration) =
 
 def dbgLog(key: String, t0: Long, message: String, config: Configuration) =
 {
-	if (writeToLog == true)
-		log(config.getOutputFolder + "log/" + key, key, t0, message, config)
+	log(config.getOutputFolder + "log/" + key, key, t0, message, config)
 }
 
 def errLog(key: String, t0: Long, message: String, config: Configuration) =
@@ -1209,7 +1198,7 @@ def main(args: Array[String])
 		else
 		{
 			val file = new File(config.getOutputFolder + "log")
-			if ((writeToLog == true) && !file.exists())
+			if (!file.exists)
 				file.mkdir()
 		}
 	}
