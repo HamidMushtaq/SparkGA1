@@ -1190,17 +1190,6 @@ def downloadBWAFiles(x: String, config: Configuration)
 	hdfsManager.downloadIfRequired(refFileName + ".sa", refFolder, config.getSfFolder)
 }
 
-def downloadVCFTools(config: Configuration)
-{
-	val hdfsManager = new HDFSManager
-	
-	hdfsManager.downloadIfRequired("AddOrReplaceReadGroups.jar", config.getToolsFolder(), config.getSfFolder())
-	hdfsManager.downloadIfRequired("BuildBamIndex.jar", config.getToolsFolder(), config.getSfFolder())
-	hdfsManager.downloadIfRequired("CleanSam.jar", config.getToolsFolder(), config.getSfFolder())
-	hdfsManager.downloadIfRequired("GenomeAnalysisTK.jar", config.getToolsFolder(), config.getSfFolder())
-	hdfsManager.downloadIfRequired("MarkDuplicates.jar", config.getToolsFolder(), config.getSfFolder())
-}
-
 def downloadVCFRefFiles(x: String, config: Configuration)
 {
 	val refFolder = getDirFromPath(config.getRefPath())
