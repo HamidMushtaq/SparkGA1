@@ -40,7 +40,7 @@ public class Configuration implements Serializable
 	private String gatkOpts;
 	private String tmpFolder;
 	private String sfFolder;
-	private String hadoopInstall;
+	private String downloadRef;
 	private String numInstances;
 	private String numThreads;
 	private String ignoreList;
@@ -85,7 +85,7 @@ public class Configuration implements Serializable
 			gatkOpts = document.getElementsByTagName("gatkOpts").item(0).getTextContent();
 			tmpFolder = correctFolderName(document.getElementsByTagName("tmpFolder").item(0).getTextContent());
 			sfFolder = correctFolderName(document.getElementsByTagName("sfFolder").item(0).getTextContent());
-			hadoopInstall = correctFolderName(document.getElementsByTagName("hadoopInstall").item(0).getTextContent());
+			downloadRef = document.getElementsByTagName("downloadRef").item(0).getTextContent();
 			ignoreList = document.getElementsByTagName("ignoreList").item(0).getTextContent();
 			//////////////////////////////////////////////////////////////////
 			ignoreListSet = new HashSet<String>();
@@ -109,8 +109,8 @@ public class Configuration implements Serializable
 			sec	= document.getElementsByTagName("standEC").item(0).getTextContent();
 			useKnownIndels = document.getElementsByTagName("useKnownIndels").item(0).getTextContent();
 			
-			if ((!mode.equals("local")) && (!mode.equals("hadoop")))
-				throw new IllegalArgumentException("Unrecognized mode type (" + mode + "). It should be either local or hadoop.");
+			if ( (!mode.equals("local")) && (!mode.equals("yarn-client")) && (!mode.equals("yarn-cluster")) )
+				throw new IllegalArgumentException("Unrecognized mode type (" + mode + "). It should be either local, yarn-client or yarn-cluster.");
 	
 			startTime = System.currentTimeMillis();
 			
@@ -326,9 +326,9 @@ public class Configuration implements Serializable
 		return "-Xmx" + execValue.toString() + "m";
 	}
 	
-	public String getHadoopInstall()
+	public boolean getDownloadRef()
 	{
-		return hadoopInstall;
+		return Boolean.valueOf(downloadRef);
 	}
 	
 	public boolean useExome()
@@ -355,7 +355,6 @@ public class Configuration implements Serializable
 		System.out.println("inputFolder:\t" + inputFolder);
 		System.out.println("outputFolder:\t" + outputFolder);
 		System.out.println("tmpFolder:\t" + tmpFolder);
-		System.out.println("hadoopInstall:\t" + hadoopInstall);
 		System.out.println("ignoreList:\t" + ignoreList);
 		System.out.println("numInstances:\t" + numInstances);
 		System.out.println("numThreads:\t" + numThreads);

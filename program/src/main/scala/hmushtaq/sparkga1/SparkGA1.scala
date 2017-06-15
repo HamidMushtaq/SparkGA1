@@ -80,9 +80,9 @@ def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (Stri
 		dbgLog("bwa/" + x, t0, "0a\tDownloading from the HDFS", config)
 		hdfsManager.download(x + ".gz", config.getInputFolder, tmpDir, false)
 		input_file = tmpDir + x + ".gz"
-		if (downloadNeededFiles)
+		if (config.getDownloadRef)
 		{
-			dbgLog("bwa/" + x, t0, "*\tDownloading reference files and the bwa program", config)
+			dbgLog("bwa/" + x, t0, "*\tDownloading reference files for bwa if required.", config)
 			downloadBWAFiles("bwa/" + x, config)
 		}
 		hdfsManager.downloadIfRequired("bwa", config.getToolsFolder(), config.getTmpFolder)
@@ -719,10 +719,7 @@ def uploadFileToOutput(filePath: String, outputPath: String, delSrc: Boolean, co
 		{
 			val fileName = getFileNameFromPath(filePath)
 			new File(config.getTmpFolder + "." + fileName + ".crc").delete()
-			// Now upload
 			val hconfig = new org.apache.hadoop.conf.Configuration()
-			hconfig.addResource(new org.apache.hadoop.fs.Path(config.getHadoopInstall + "etc/hadoop/core-site.xml"))
-			hconfig.addResource(new org.apache.hadoop.fs.Path(config.getHadoopInstall + "etc/hadoop/hdfs-site.xml"))
 		
 			val fs = org.apache.hadoop.fs.FileSystem.get(hconfig)
 			fs.copyFromLocalFile(delSrc, true, new org.apache.hadoop.fs.Path(config.getTmpFolder + fileName), 
@@ -780,14 +777,14 @@ def processBAM(chrRegion: String, config: Configuration) : Integer =
 	
 	dbgLog("region_" + chrRegion, t0, "3\tPicard processing started", config)
 	var cmdRes = picardPreprocess(tmpFileBase, config)
-	if (downloadNeededFiles)
+	if (config.getDownloadRef)
 	{
 		dbgLog("region_" + chrRegion, t0, "*\tDownloading VCF ref files", config)
 		downloadVCFRefFiles("region_" + chrRegion, config)
 	}
 	if (doIndelRealignment)
 		cmdRes += indelRealignment(tmpFileBase, t0, chrRegion, config)
-	if (downloadNeededFiles)
+	if (config.getDownloadRef)
 	{
 		dbgLog("region_" + chrRegion, t0, "*\tDownloading snp file", config)
 		downloadVCFSnpFile("region_" + chrRegion, config)
@@ -1127,42 +1124,6 @@ def writeWholeFile(fname: String, s: String, config: Configuration)
 		new PrintWriter(fname) {write(s); close}
 }
 
-def gunZipDownloadedFile(x: String, filePath: String, config: Configuration) : Long =
-{
-	val fileName = getFileNameFromPath(filePath)
-	val hdfsManager = new HDFSManager
-	val fileSize = hdfsManager.getFileSize(filePath)
-	
-	dbgLog(x, 0, "#1\tfilePath = " + filePath + ", fileSize = " + fileSize, config)
-	try{("gunzip " + config.getTmpFolder + fileName + ".gz").!}
-	catch{case e: Exception => dbgLog(x, 0, "#gunzip\nEither already unzipped or some other thread is unzipping it!", config)}
-	val f = new File(config.getTmpFolder + fileName)
-	@volatile var flen = f.length
-	
-	var iter = 0
-	while(flen != fileSize)
-	{
-		if ((iter % 10) == 0)
-			dbgLog(x, 0, "#2\tflen = " + flen + ", fileSize = " + fileSize, config)
-		iter += 1
-		Thread.sleep(1000)
-		flen = f.length
-	}
-	dbgLog(x, 0, "#3\tflen = " + flen + ", fileSize = " + fileSize, config)
-	
-	return flen
-}
-
-def fileToDownloadAlreadyExists(hdfsPath: String, config: Configuration) : Boolean =
-{
-	val fileName = getFileNameFromPath(hdfsPath)
-	val hdfsManager = new HDFSManager
-	val fileSize = hdfsManager.getFileSize(hdfsPath)
-	val f = new File(config.getSfFolder + fileName)
-	
-	return f.exists && (f.length == fileSize)
-}
-
 def downloadBWAFiles(x: String, config: Configuration)
 {
 	val refFolder = getDirFromPath(config.getRefPath())
@@ -1172,19 +1133,11 @@ def downloadBWAFiles(x: String, config: Configuration)
 	if (!(new File(config.getSfFolder).exists))
 		new File(config.getSfFolder()).mkdirs()
 	
-	if (!fileToDownloadAlreadyExists(config.getRefPath, config))
-	{
-		hdfsManager.downloadIfRequired(refFileName + ".gz", refFolder, config.getSfFolder);
-		gunZipDownloadedFile(x, config.getRefPath, config)
-	}
+	hdfsManager.downloadIfRequired(refFileName, refFolder, config.getSfFolder);
 	hdfsManager.downloadIfRequired(refFileName.replace(".fasta", ".dict"), refFolder, config.getSfFolder)
 	hdfsManager.downloadIfRequired(refFileName + ".amb", refFolder, config.getSfFolder)
 	hdfsManager.downloadIfRequired(refFileName + ".ann", refFolder, config.getSfFolder)
-	if (!fileToDownloadAlreadyExists(config.getRefPath + ".bwt", config))
-	{
-		hdfsManager.downloadIfRequired(refFileName + ".bwt.gz", refFolder, config.getSfFolder);
-		gunZipDownloadedFile(x, config.getRefPath + ".bwt", config)
-	}
+	hdfsManager.downloadIfRequired(refFileName + ".bwt", refFolder, config.getSfFolder);
 	hdfsManager.downloadIfRequired(refFileName + ".fai", refFolder, config.getSfFolder)
 	hdfsManager.downloadIfRequired(refFileName + ".pac", refFolder, config.getSfFolder)
 	hdfsManager.downloadIfRequired(refFileName + ".sa", refFolder, config.getSfFolder)
@@ -1199,11 +1152,7 @@ def downloadVCFRefFiles(x: String, config: Configuration)
 	if (!(new File(config.getSfFolder).exists))
 		new File(config.getSfFolder()).mkdirs()
 	
-	if (!fileToDownloadAlreadyExists(config.getRefPath, config))
-	{
-		hdfsManager.downloadIfRequired(refFileName + ".gz", refFolder, config.getSfFolder);
-		gunZipDownloadedFile(x, config.getRefPath, config)
-	}
+	hdfsManager.downloadIfRequired(refFileName, refFolder, config.getSfFolder);
 	hdfsManager.downloadIfRequired(refFileName.replace(".fasta", ".dict"), refFolder, config.getSfFolder)
 	hdfsManager.downloadIfRequired(refFileName + ".fai", refFolder, config.getSfFolder)
 	
@@ -1222,11 +1171,7 @@ def downloadVCFSnpFile(x: String, config: Configuration)
 	val snpFileName = getFileNameFromPath(config.getSnpPath)
 	val hdfsManager = new HDFSManager
 	
-	if (!fileToDownloadAlreadyExists(config.getSnpPath, config))
-	{
-		hdfsManager.downloadIfRequired(snpFileName + ".gz", snpFolder, config.getSfFolder);
-		gunZipDownloadedFile(x, config.getSnpPath, config)
-	}
+	hdfsManager.downloadIfRequired(snpFileName, snpFolder, config.getSfFolder);
 	hdfsManager.download(snpFileName + ".idx", snpFolder, config.getSfFolder, true)	
 }
 
