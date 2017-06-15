@@ -12,8 +12,6 @@ import subprocess
 import math
 import glob
 
-USE_YARN_CLIENT_FOR_HADOOP = True
-
 if len(sys.argv) < 3:
 	print("Not enough arguments!")
 	print("Example of usage: ./run2.py config.xml 1")
@@ -34,6 +32,7 @@ refPath = doc.getElementsByTagName("refPath")[0].firstChild.data
 inputFolder = doc.getElementsByTagName("inputFolder")[0].firstChild.data
 outputFolder = doc.getElementsByTagName("outputFolder")[0].firstChild.data
 tmpFolder = doc.getElementsByTagName("tmpFolder")[0].firstChild.data
+toolsFolder = doc.getElementsByTagName("toolsFolder")[0].firstChild.data
 # Parameters for this part
 numInstances = doc.getElementsByTagName("numInstances" + partNumber)[0].firstChild.data
 numTasks = doc.getElementsByTagName("numTasks" + partNumber)[0].firstChild.data
@@ -58,27 +57,24 @@ def getNumOfLocalChunks():
 def executeHadoop(part, ni, em, extra_param):	
 	dictHDFSPath = refPath.replace(".fasta", ".dict")
 	dictPath = './' + dictHDFSPath[dictHDFSPath.rfind('/') + 1:]
-	
-	if USE_YARN_CLIENT_FOR_HADOOP:
-		os.system('cp ' + configFilePath + ' ./')
-		if not os.path.exists(tmpFolder):
-			os.makedirs(tmpFolder)
-	
-	diff_str = "yarn-client" if USE_YARN_CLIENT_FOR_HADOOP else ("yarn-cluster --files " + configFilePath + "," + dictPath)
+			
+	tools = glob.glob(toolsFolder + '/*')
+	toolsStr = ''
+	for t in tools:
+		toolsStr = toolsStr + t + ','
+	toolsStr = toolsStr[0:-1]
 	
 	cmdStr = "$SPARK_HOME/bin/spark-submit " + \
 	"--jars lib/htsjdk-1.143.jar " + \
-	"--class \"hmushtaq.sparkga1.SparkGA1\" --master " + diff_str + " " + \
+	"--class \"hmushtaq.sparkga1.SparkGA1\" --master " + mode + " " + \
+	"--files " + configFilePath + "," + dictPath + "," + toolsStr + " " + \
 	"--driver-memory " + driver_mem + " --executor-memory " + em + " " + \
 	"--num-executors " + ni + " --executor-cores " + numTasks + " " + \
-	exeName + " " + os.path.basename(configFilePath) + " " + str(part) + extra_param
+	exeName + " " + configFilePath + " " + str(part) + extra_param
 	
 	print cmdStr
 	addToLog("[" + time.ctime() + "] " + cmdStr)
 	os.system(cmdStr)
-	
-	if USE_YARN_CLIENT_FOR_HADOOP:
-		os.remove('./' + configFilePath[configFilePath.rfind('/') + 1:])
 	
 def executeLocal(part, extra_param):
 	if not os.path.exists(tmpFolder):

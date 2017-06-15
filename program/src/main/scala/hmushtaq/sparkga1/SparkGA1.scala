@@ -106,7 +106,7 @@ def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (Stri
 		new File(input_file).delete()
 	
 	// run bwa mem
-	val progName = getBinToolsDirPath(config) + "bwa mem "
+	val progName = getToolsDirPath(config) + "bwa mem "
 	val outFileName = tmpDir + "out_" + x
 	val nthreads = config.getNumThreads.toInt
 	// Example: bwa mem input_files_directory/fasta_file.fasta -p -t 2 x.fq > out_file
@@ -660,7 +660,7 @@ def makeRegionFile(tmpFileBase: String, r: ChromosomeRange, config: Configuratio
 	
 	if (config.useExome())
 	{
-		val toolsFolder = getBinToolsDirPath(config)
+		val toolsFolder = getToolsDirPath(config)
 		val exomeBed = tmpFileBase + "_exome.bed"
 		
 		copyExomeBed(exomeBed, config)
@@ -764,11 +764,6 @@ def processBAM(chrRegion: String, config: Configuration) : Integer =
 		hdfsManager.download(chrRegion + "-p1.bam", config.getOutputFolder + "bam/", config.getTmpFolder, false)
 		hdfsManager.download(chrRegion + ".bed", config.getOutputFolder + "bed/", config.getTmpFolder, false)
 		dbgLog("region_" + chrRegion, t0, "2h\tCompleted download of bam and bed to the local directory!", config)
-		if (downloadNeededFiles)
-		{
-			dbgLog("region_" + chrRegion, t0, "*\tDownloading tools", config)
-			downloadVCFTools(config)
-		}
 	}
 	
 	var f = new File(tmpFileBase + "-p1.bam");
@@ -1054,12 +1049,7 @@ def getExomeFilePath(config: Configuration) : String =
 
 def getToolsDirPath(config: Configuration) : String = 
 {
-	return if (config.getMode() == "local") config.getToolsFolder() else config.getSfFolder()
-}
-
-def getBinToolsDirPath(config: Configuration) : String = 
-{
-	return if (config.getMode() == "local") config.getToolsFolder() else config.getTmpFolder()
+	return if (config.getMode() == "local") config.getToolsFolder() else "./"
 }
 
 def getTimeStamp() : String =
@@ -1253,10 +1243,13 @@ def downloadVCFSnpFile(x: String, config: Configuration)
 
 def main(args: Array[String]) 
 {
-	val config = new Configuration()
-	config.initialize(args(0), args(1))
-	val part = args(1).toInt
 	val conf = new SparkConf().setAppName("SparkGA1")
+	val sc = new SparkContext(conf)
+	val config = new Configuration()
+	config.initialize(args(0), sc.deployMode, args(1))
+	val part = args(1).toInt
+	
+	config.print() 
 	
 	if (config.getMode == "local")
 	{
@@ -1267,19 +1260,10 @@ def main(args: Array[String])
 	{
 		conf.set("spark.shuffle.blockTransferService", "nio") 
 		conf.set("spark.network.timeout", "12000")
-		if (part == 1)
-		{
-			conf.set("spark.storage.memoryFraction", "0.1") // For older version of Spark
-			//conf.set("spark.memory.storageFraction", "0.1") // For Spark 1.6
-			//conf.set("spark.yarn.executor.memoryOverhead", "512")
-		}
 	}
    
-	val sc = new SparkContext(conf)
 	val bcConfig = sc.broadcast(config)
 	val hdfsManager = new HDFSManager
-	
-	config.print() 
 	
 	if (part == 1)
 	{

@@ -59,10 +59,14 @@ public class Configuration implements Serializable
 	private HashMap<String, Integer> chrNameMap;
 	private HashSet<String> ignoreListSet;
 	
-	public void initialize(String configFile, String part)
+	public void initialize(String configFilePath, String deployMode, String part)
 	{	
 		try
 		{
+			String configFile = configFilePath;
+			if (deployMode.equals("cluster"))
+				configFile = getFileNameFromPath(configFilePath);
+			
 			File file = new File(configFile);
 			DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
@@ -150,7 +154,10 @@ public class Configuration implements Serializable
 	
 	private String getFileNameFromPath(String path)
 	{
-		return path.substring(path.lastIndexOf('/') + 1);
+		if (path.contains("/"))
+			return path.substring(path.lastIndexOf('/') + 1);
+		else
+			return path;
 	}
 	
 	public SAMSequenceDictionary getDict()
