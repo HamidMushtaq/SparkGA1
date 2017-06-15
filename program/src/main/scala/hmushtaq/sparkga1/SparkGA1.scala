@@ -82,9 +82,6 @@ def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (Stri
 			dbgLog("bwa/" + x, t0, "*\tDownloading reference files for bwa if required.", config)
 			downloadBWAFiles("bwa/" + x, config)
 		}
-		hdfsManager.downloadIfRequired("bwa", config.getToolsFolder(), config.getTmpFolder)
-		val file = new File(tmpDir + "bwa") 
-		file.setExecutable(true)
 	}
 	else
 	{
@@ -94,6 +91,9 @@ def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (Stri
 			file.mkdir()
 	}
 	
+	val file = new File(getToolsDirPath(config) + "bwa") 
+	file.setExecutable(true)
+		
 	// unzip the input .gz file
 	var fqFileName = tmpDir + x
 	val unzipStr = "gunzip -c " + input_file
@@ -656,12 +656,8 @@ def makeRegionFile(tmpFileBase: String, r: ChromosomeRange, config: Configuratio
 		
 		copyExomeBed(exomeBed, config)
 		
-		if (config.getMode != "local")
-		{
-			hdfsManager.downloadIfRequired("bedtools", config.getToolsFolder, config.getTmpFolder)
-			val file = new File(config.getTmpFolder + "bedtools") 
-			file.setExecutable(true)
-		}
+		val file = new File(getToolsDirPath(config) + "bedtools") 
+		file.setExecutable(true)
 		
 		 // write a bed file with the region!
 		val bed = new File(exomeBed + "_tmp.bed")
