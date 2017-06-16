@@ -14,7 +14,7 @@ import glob
 
 if len(sys.argv) < 3:
 	print("Not enough arguments!")
-	print("Example of usage: ./run2.py config.xml 1")
+	print("Example usage: ./run2.py config.xml 1")
 	sys.exit(1)
 
 exeName = "program/sparkga1_2.11-1.0.jar"
