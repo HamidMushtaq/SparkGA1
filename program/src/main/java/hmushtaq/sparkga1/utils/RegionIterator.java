@@ -64,6 +64,7 @@ public class RegionIterator
 
     public RegionIterator(Tuple2<Integer, SAMRecord>[] samRecords, SAMFileHeader header, int startIndex, int endIndex)
 	{
+		bedLinesList = new ArrayList<BedLine>();
         this.samRecords = samRecords;
         this.header = header;
 		this.startIndex = startIndex;
