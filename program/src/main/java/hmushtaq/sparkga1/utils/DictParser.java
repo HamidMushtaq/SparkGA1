@@ -32,7 +32,7 @@ import java.util.*;
  * @author Hamid Mushtaq
  */
 public class DictParser
-{	
+{
 	SAMSequenceDictionary dict;
 	ArrayList<Integer> chrLenArray;
 	int[] chrRegionSizeArray;
@@ -140,7 +140,6 @@ public class DictParser
 					System.out.println("Number format exception!\n");
 				}
 				SAMSequenceRecord seq = new SAMSequenceRecord(seqName, seqLength);
-	//                Logger.DEBUG("name: " + seq.getSequenceName() + " length: " + seq.getSequenceLength());
 				dict.addSequence(seq);  
 				line = getLine(stream);
 			}

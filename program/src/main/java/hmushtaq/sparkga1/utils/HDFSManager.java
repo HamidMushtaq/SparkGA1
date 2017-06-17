@@ -61,8 +61,8 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
-        }
+			ex.printStackTrace();
+		}
 	}
 	
 	public PrintWriter open(String fname) throws IOException
@@ -81,9 +81,9 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
+			ex.printStackTrace();
 			return null;
-        }
+		}
 	}
 	
 	public boolean exists(String fname)
@@ -96,9 +96,9 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
+			ex.printStackTrace();
 			return false;
-        }
+		}
 	}
 	
 	public void append(String fname, String s)
@@ -124,9 +124,9 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
+			ex.printStackTrace();
 			return "";
-        }
+		}
 	}
 	
 	public byte[] readBytes(String fname)
@@ -146,9 +146,9 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
+			ex.printStackTrace();
 			return new byte[0];
-        }
+		}
 	}
 	
 	public String readPartialFile(String fname, int bytes)
@@ -166,9 +166,9 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
+			ex.printStackTrace();
 			return "IOException!";
-        }
+		}
 	}
 	
 	public void writeWholeFile(String fname, String s)
@@ -190,8 +190,8 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
-        }
+			ex.printStackTrace();
+		}
 	}
 	
 	public void writeBytes(String fname, byte[] bytes)
@@ -209,8 +209,8 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
-        }
+			ex.printStackTrace();
+		}
 	}
 	
 	public void remove(String fname)
@@ -221,8 +221,8 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
-        }
+			ex.printStackTrace();
+		}
 	}
 	
 	public int download(String fileName, String hdfsFolder, String localFolder, boolean overwrite)
