@@ -72,7 +72,7 @@ class SamRegionsParser(chunkID: String, writerMap: scala.collection.mutable.Hash
 		{
 			case e: Exception => println("badline<" + line + ">"); badLines += 1; return -1
 		}
-    }
+	}
 		
 	def getNumOfReads() : Integer =
 	{

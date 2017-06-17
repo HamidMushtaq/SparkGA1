@@ -35,9 +35,9 @@ class SamRecsReader(is: InputStream, config: Configuration)
 	private val keyValues = scala.collection.mutable.ArrayBuffer.empty[(Integer, SAMRecord)]
 	private val mConfig = config
 	private var mReads = 0
-    private val validationStringency: ValidationStringency = ValidationStringency.LENIENT;
-    private val mReader = new BufferedLineReader(is);
-    private val samRecordFactory = new DefaultSAMRecordFactory();
+	private val validationStringency: ValidationStringency = ValidationStringency.LENIENT;
+	private val mReader = new BufferedLineReader(is);
+	private val samRecordFactory = new DefaultSAMRecordFactory();
 	private var mCurrentLine: String = null
 	
 	def getKeyValuePairs() : Array[(Integer, SAMRecord)] = 
@@ -45,10 +45,10 @@ class SamRecsReader(is: InputStream, config: Configuration)
 		return keyValues.toArray
 	}
 	
-    def writeSAMRecord(sam: SAMRecord) : Integer = 
+	def writeSAMRecord(sam: SAMRecord) : Integer = 
 	{
-        var count = 0
-        val read1Ref = sam.getReferenceIndex()
+		var count = 0
+		val read1Ref = sam.getReferenceIndex()
 		
 		if (!sam.getReadUnmappedFlag() && (read1Ref >= 0))
 		{
@@ -59,13 +59,13 @@ class SamRecsReader(is: InputStream, config: Configuration)
 		}
 		
 		return count
-    }
+	}
 	
 	def writeSAMRecord(sam: SAMRecord, 
 		writerMap: scala.collection.mutable.HashMap[(Integer, Integer), scala.collection.mutable.ArrayBuffer[SAMRecord]]) : Integer = 
 	{
-        var count = 0
-        val chr = sam.getReferenceIndex()
+		var count = 0
+		val chr = sam.getReferenceIndex()
 		
 		if (!sam.getReadUnmappedFlag() && (chr >= 0))
 		{
@@ -79,26 +79,26 @@ class SamRecsReader(is: InputStream, config: Configuration)
 		}
 		
 		return count
-    }
+	}
 		
 	def advanceLine() : String = 
-    {
-        mCurrentLine = mReader.readLine()
-        return mCurrentLine;
-    }
+	{
+		mCurrentLine = mReader.readLine()
+		return mCurrentLine;
+	}
 	
 	def parseSam(writerMap: scala.collection.mutable.HashMap[(Integer, Integer), scala.collection.mutable.ArrayBuffer[SAMRecord]]) : Integer =  
 	{
 		var mParentReader: SAMFileReader = null
-        val headerCodec = new SAMTextHeaderCodec();
-        headerCodec.setValidationStringency(validationStringency)
-        val mFileHeader = headerCodec.decode(mReader, null)
-        val parser = new SAMLineParser(samRecordFactory, validationStringency, mFileHeader, null, null)
-        // now process each read...
-        var count = 0
+		val headerCodec = new SAMTextHeaderCodec();
+		headerCodec.setValidationStringency(validationStringency)
+		val mFileHeader = headerCodec.decode(mReader, null)
+		val parser = new SAMLineParser(samRecordFactory, validationStringency, mFileHeader, null, null)
+		// now process each read...
+		var count = 0
 		var badLines = 0
 		
-        mCurrentLine = mReader.readLine()
+		mCurrentLine = mReader.readLine()
 		
 		if (mCurrentLine == null)
 			println("Hamid >> mCurrentLine is null!")
@@ -107,15 +107,15 @@ class SamRecsReader(is: InputStream, config: Configuration)
 		{
 			try
 			{
-			val samrecord = parser.parseLine(mCurrentLine, mReader.getLineNumber())
+				val samrecord = parser.parseLine(mCurrentLine, mReader.getLineNumber())
 			
-			if ((count != 0) && ((count % 500000) == 0))
-				println("Hamid >> " + count + " records parsed.")
+				if ((count != 0) && ((count % 500000) == 0))
+					println("Hamid >> " + count + " records parsed.")
 			
-			if (writerMap == null)
-				count += writeSAMRecord(samrecord)
-			else
-				count += writeSAMRecord(samrecord, writerMap)
+				if (writerMap == null)
+					count += writeSAMRecord(samrecord)
+				else
+					count += writeSAMRecord(samrecord, writerMap)
 			}
 			catch
 			{
@@ -126,10 +126,10 @@ class SamRecsReader(is: InputStream, config: Configuration)
 		}
         
 		mReads = count
-        println("SAMstream counts " + count + " records");
+		println("SAMstream counts " + count + " records");
 	
 		return badLines
-    }
+	}
 	
 	def getNumOfReads() : Integer =
 	{
