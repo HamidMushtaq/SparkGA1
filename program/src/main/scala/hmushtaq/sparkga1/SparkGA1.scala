@@ -637,13 +637,16 @@ object SparkGA1
 		for( line <- lines)
 		{
 			val e = line.split('\t')
-			val lval = e(1).toLong
-			var hval = e(2).toLong
+			if (e.size >= 2)
+			{
+				val lval = e(1).toLong
+				var hval = e(2).toLong
 			
-			if (lval == hval)
-				hval += 1
+				if (lval == hval)
+					hval += 1
 			
-			s += e(0) + "\t" + lval + "\t" + hval + "\n"
+				s += e(0) + "\t" + lval + "\t" + hval + "\n"
+			}
 		}
 		
 		new PrintWriter(bedFile) {write(s); close}
