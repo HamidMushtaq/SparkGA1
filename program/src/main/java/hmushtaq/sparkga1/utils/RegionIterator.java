@@ -33,45 +33,45 @@ public class RegionIterator
 {
 	protected class BedLine 
 	{
-        protected String chrName;
-        protected int startPos;
-        protected int endPos;
+		protected String chrName;
+		protected int startPos;
+		protected int endPos;
 
-        protected BedLine(String chrName, int startPos, int endPos) 
+		protected BedLine(String chrName, int startPos, int endPos) 
 		{
-            this.chrName = chrName;
-            this.startPos = startPos;
-            this.endPos = endPos;
-        }
+			this.chrName = chrName;
+			this.startPos = startPos;
+			this.endPos = endPos;
+		}
         
-        protected String getString() 
+		protected String getString() 
 		{
-            return chrName + "\t" + (startPos - 1)  + "\t" + (endPos - 1);
-        }
-    }
+			return chrName + "\t" + (startPos - 1)  + "\t" + (endPos - 1);
+		}
+	}
     
-    protected ArrayList<BedLine> bedLinesList;
-    protected SAMRecord sam = null;
-    protected int reads = 0;
-    protected int currentStart = -1, currentEnd = -1, currentChr = -1;
-    protected String chrString = "";
-    protected SAMFileHeader header;
-    protected static final int INTERVAL_OVERLAP = 51;
+	protected ArrayList<BedLine> bedLinesList;
+	protected SAMRecord sam = null;
+	protected int reads = 0;
+	protected int currentStart = -1, currentEnd = -1, currentChr = -1;
+	protected String chrString = "";
+	protected SAMFileHeader header;
+	protected static final int INTERVAL_OVERLAP = 51;
 	protected Tuple2<Integer, SAMRecord>[] samRecords;
 	protected int index;
 	protected int startIndex;
 	protected int endIndex;
 
-    public RegionIterator(Tuple2<Integer, SAMRecord>[] samRecords, SAMFileHeader header, int startIndex, int endIndex)
+	public RegionIterator(Tuple2<Integer, SAMRecord>[] samRecords, SAMFileHeader header, int startIndex, int endIndex)
 	{
 		bedLinesList = new ArrayList<BedLine>();
-        this.samRecords = samRecords;
-        this.header = header;
+		this.samRecords = samRecords;
+		this.header = header;
 		this.startIndex = startIndex;
 		this.endIndex = endIndex;
 		index = startIndex;
-        getFirstRecord();
-    }
+		getFirstRecord();
+	}
     
 	public boolean hasNext()
 	{
@@ -83,24 +83,25 @@ public class RegionIterator
 		return samRecords[index++]._2;
 	}
 	
-    private void getFirstRecord() {
-        sam = null;
-        if(hasNext()) 
-		{
-            sam = getNext();
-            sam.setHeader(header);
-            reads++;
-            currentStart = sam.getAlignmentStart();
-            currentEnd = sam.getAlignmentEnd();
-            currentChr = sam.getReferenceIndex();
-            chrString = sam.getReferenceName();
-        }
-    }
-
-    public SAMRecord next() 
+	private void getFirstRecord() 
 	{
-        SAMRecord tmp = sam;
-        if (hasNext()) 
+		sam = null;
+		if(hasNext()) 
+		{
+			sam = getNext();
+			sam.setHeader(header);
+			reads++;
+			currentStart = sam.getAlignmentStart();
+			currentEnd = sam.getAlignmentEnd();
+			currentChr = sam.getReferenceIndex();
+			chrString = sam.getReferenceName();
+		}
+	}
+
+	public SAMRecord next() 
+	{
+		SAMRecord tmp = sam;
+		if (hasNext()) 
 		{
 			sam = getNext();
 			sam.setHeader(header);
@@ -118,11 +119,11 @@ public class RegionIterator
 				currentChr = sam.getReferenceIndex();
 				chrString = sam.getReferenceName();
 			}
-        } 
+		} 
 		else 
-            sam = null;
-        return tmp;
-    }
+			sam = null;
+		return tmp;
+	}
 
 	public void addLastChrRange()
 	{
@@ -130,19 +131,19 @@ public class RegionIterator
 			bedLinesList.add(new BedLine(chrString, currentStart, currentEnd));
 	}
 	
-    public int getCount() 
+	public int getCount() 
 	{
-        return reads;
-    }
+		return reads;
+	}
     
 	public void writeToBedFile(String bedFileName) throws IOException
 	{        
-        BufferedWriter bw = new BufferedWriter(new FileWriter(bedFileName));
-        for(BedLine bedLine : bedLinesList) 
+		BufferedWriter bw = new BufferedWriter(new FileWriter(bedFileName));
+		for(BedLine bedLine : bedLinesList) 
 		{
-            bw.write(bedLine.getString());
-            bw.newLine();
-        }
-        bw.close();
-    }
+			bw.write(bedLine.getString());
+			bw.newLine();
+		}
+		bw.close();
+	}
 }
