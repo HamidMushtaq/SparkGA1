@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Hamid Mushtaq, TU Delft
+ * Copyright (C) 2016-2017 TU Delft, The Netherlands
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,6 +13,9 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Hamid Mushtaq
+ *
  */
 package hmushtaq.sparkga1.utils
 
@@ -23,6 +26,10 @@ import java.util._
 import htsjdk.samtools.util.BufferedLineReader
 import htsjdk.samtools._
 
+/**
+ *
+ * @author Hamid Mushtaq
+ */
 class SamRecsReader(is: InputStream, config: Configuration)
 {
 	private val keyValues = scala.collection.mutable.ArrayBuffer.empty[(Integer, SAMRecord)]
