@@ -114,7 +114,6 @@ public class Configuration implements Serializable
 			vcMemGB = document.getElementsByTagName("vcMemGB").item(0).getTextContent();
 			scc	= document.getElementsByTagName("standCC").item(0).getTextContent();
 			sec	= document.getElementsByTagName("standEC").item(0).getTextContent();
-			useKnownIndels = document.getElementsByTagName("useKnownIndels").item(0).getTextContent();
 			
 			if ( (!mode.equals("local")) && (!mode.equals("yarn-client")) && (!mode.equals("yarn-cluster")) )
 				throw new IllegalArgumentException("Unrecognized mode type (" + mode + "). It should be either local, yarn-client or yarn-cluster.");

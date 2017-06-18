@@ -171,7 +171,7 @@ object SparkGA1
 			posOutStr.append(posContent)
 			posTotalBytes += posContent.size
 			//////////////////////////////////////////////////////////////////////
-			if ((totalBytes + content.size) > 0)
+			if ((totalBytes + content.size) > blockSize)
 			{
 				//dbgStr.append("+writeWholeFile\t")
 				writeWholeFile(config.getOutputFolder + "samChunks/chunk_" + x + "-" + currentNum, outStr.toString, config)
