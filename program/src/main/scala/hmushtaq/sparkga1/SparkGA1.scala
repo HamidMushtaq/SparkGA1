@@ -1171,8 +1171,8 @@ object SparkGA1
 		
 		if (config.getMode == "local")
 		{
-			conf.setMaster("local[" + config.getNumInstances() + "]")
-			conf.set("spark.cores.max", config.getNumInstances())
+			conf.setMaster("local[" + config.getNumTasks + "]")
+			conf.set("spark.cores.max", config.getNumTasks)
 		}
 		else
 		{

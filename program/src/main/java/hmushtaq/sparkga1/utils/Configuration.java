@@ -49,6 +49,7 @@ public class Configuration implements Serializable
 	private String sfFolder;
 	private String downloadRef;
 	private String numInstances;
+	private String numTasks;
 	private String numThreads;
 	private String ignoreList;
 	private String numRegions;
@@ -108,6 +109,7 @@ public class Configuration implements Serializable
 			regionsFactor = document.getElementsByTagName("regionsFactor").item(0).getTextContent();
 			
 			numInstances = document.getElementsByTagName("numInstances" + part).item(0).getTextContent();
+			numTasks = document.getElementsByTagName("numTasks" + part).item(0).getTextContent();
 			numThreads = document.getElementsByTagName("numThreads" + part).item(0).getTextContent();
 			execMemGB = document.getElementsByTagName("execMemGB" + part).item(0).getTextContent();
 			driverMemGB = document.getElementsByTagName("driverMemGB" + part).item(0).getTextContent();
@@ -269,6 +271,11 @@ public class Configuration implements Serializable
 		return numInstances;
 	}
 	
+	public String getNumTasks()
+	{
+		return numTasks;
+	}
+	
 	public String getNumThreads()
 	{
 		return numThreads;
@@ -363,6 +370,7 @@ public class Configuration implements Serializable
 		System.out.println("tmpFolder:\t" + tmpFolder);
 		System.out.println("ignoreList:\t" + ignoreList);
 		System.out.println("numInstances:\t" + numInstances);
+		System.out.println("numTasks:\t" + numTasks);
 		System.out.println("numThreads:\t" + numThreads);
 		System.out.println("execMemGB:\t" + execMemGB);
 		System.out.println("driverMemGB:\t" + driverMemGB);
