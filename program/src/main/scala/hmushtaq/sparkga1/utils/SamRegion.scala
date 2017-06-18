@@ -32,19 +32,37 @@ import scala.collection.mutable._
  */
 class SamRegion(header: String, fileName: String, config: Configuration)
 {
+	private final val USE_FILE = false
 	private var minPos = 0
 	private var maxPos = 0
 	private var size: Long = 0
 	private var sbPos = new StringBuilder
-	private var pw = new PrintWriter(config.getTmpFolder + fileName)
+	private var sbContent: StringBuilder = {
+		if (USE_FILE) 
+			null 
+		else 
+			new StringBuilder
+	}
+	private var pw: PrintWriter = {
+		if (USE_FILE) 
+			new PrintWriter(config.getTmpFolder + fileName) 
+		else 
+			null
+	}
 	
-	pw.write(header)
+	if (USE_FILE)
+		pw.write(header)
+	else
+		sbContent.append(header)
 	
 	def append(chrPos: Int, line: String) = 
 	{
 		size += 1
 		sbPos.append(chrPos + "\n")
-		pw.write(line + "\n")
+		if (USE_FILE)
+			pw.write(line + "\n")
+		else
+			sbContent.append(line + "\n")
 		
 		if (maxPos == 0)
 		{
@@ -76,10 +94,19 @@ class SamRegion(header: String, fileName: String, config: Configuration)
 	
 	def getContent: String =
 	{
-		pw.close
-		val content = new String(Files.readAllBytes(Paths.get(config.getTmpFolder + fileName))) 
-		new File(config.getTmpFolder + fileName).delete
-		return content
+		if (USE_FILE)
+		{
+			pw.close
+			val content = new String(Files.readAllBytes(Paths.get(config.getTmpFolder + fileName))) 
+			new File(config.getTmpFolder + fileName).delete
+			return content
+		}
+		else
+		{
+			val content = sbContent.toString
+			sbContent = null
+			return content
+		}
 	}
 	
 	def getPositionsStr: String =
