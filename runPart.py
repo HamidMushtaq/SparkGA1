@@ -82,7 +82,7 @@ def executeLocal(part, extra_param):
 			
 	cmdStr = "$SPARK_HOME/bin/spark-submit " + \
 	"--jars lib/htsjdk-1.143.jar " + \
-	"--class \"DNASeqAnalyzer\" --master local[*] --driver-memory " + driver_mem + " " + exeName + " " + \
+	"--class \"hmushtaq.sparkga1.SparkGA1\" --master local[*] --driver-memory " + driver_mem + " " + exeName + " " + \
 	configFilePath + " " + str(part) + extra_param
 	
 	print cmdStr
