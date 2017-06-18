@@ -19,8 +19,7 @@
  */
 package hmushtaq.sparkga1.utils
 
-import java.io.File
-import java.io.PrintWriter
+import java.io._
 import java.nio.file.Files
 import java.nio.file.Paths
 import htsjdk.samtools.SAMRecord
@@ -37,32 +36,20 @@ class SamRegion(header: String, fileName: String, config: Configuration)
 	private var maxPos = 0
 	private var size: Long = 0
 	private var sbPos = new StringBuilder
-	private var sbContent: StringBuilder = {
+	private var contentWriter: Writer = {
 		if (USE_FILE) 
-			null 
+			new PrintWriter(config.getTmpFolder + fileName)
 		else 
-			new StringBuilder
-	}
-	private var pw: PrintWriter = {
-		if (USE_FILE) 
-			new PrintWriter(config.getTmpFolder + fileName) 
-		else 
-			null
+			new StringWriter
 	}
 	
-	if (USE_FILE)
-		pw.write(header)
-	else
-		sbContent.append(header)
-	
+	contentWriter.write(header)
+
 	def append(chrPos: Int, line: String) = 
 	{
 		size += 1
 		sbPos.append(chrPos + "\n")
-		if (USE_FILE)
-			pw.write(line + "\n")
-		else
-			sbContent.append(line + "\n")
+		contentWriter.write(line + "\n")
 		
 		if (maxPos == 0)
 		{
@@ -94,19 +81,19 @@ class SamRegion(header: String, fileName: String, config: Configuration)
 	
 	def getContent: String =
 	{
+		contentWriter.close
+		var content: String = null
+		
 		if (USE_FILE)
 		{
-			pw.close
-			val content = new String(Files.readAllBytes(Paths.get(config.getTmpFolder + fileName))) 
+			content = new String(Files.readAllBytes(Paths.get(config.getTmpFolder + fileName))) 
 			new File(config.getTmpFolder + fileName).delete
-			return content
 		}
 		else
-		{
-			val content = sbContent.toString
-			sbContent = null
-			return content
-		}
+			content = contentWriter.toString
+		
+		contentWriter = null
+		return content
 	}
 	
 	def getPositionsStr: String =
