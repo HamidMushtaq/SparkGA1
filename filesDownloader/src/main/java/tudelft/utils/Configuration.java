@@ -115,7 +115,7 @@ public class Configuration implements Serializable
 	
 	public String getSfFolder()
 	{
-		return inputFolder;
+		return sfFolder;
 	}
 	
 	public String getNumNodes()

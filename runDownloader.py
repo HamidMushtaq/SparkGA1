@@ -17,7 +17,7 @@ import time
 #	rm: Remove a file from the local directory (sfFolder) of all nodes
 # 	ls: Display files in the local directory (sfFolder) of all nodes
 
-exeName = "filesDownloader/filesdownloader_2.10-1.0.jar"
+exeName = "filesDownloader/filesdownloader_2.11-1.0.jar"
 
 if len(sys.argv) < 3:
 	print "Too few arguments"
@@ -40,14 +40,15 @@ if len(sys.argv) == 4:
 	third_arg = sys.argv[3]
 
 doc = minidom.parse(configFilePath)
+deploy_mode = doc.getElementsByTagName("mode")[0].firstChild.data
 numNodes = doc.getElementsByTagName("numNodes")[0].firstChild.data
-exe_mem = doc.getElementsByTagName("execMemGB" + partNumber)[0].firstChild.data + "g"
-driver_mem = doc.getElementsByTagName("driverMemGB" + partNumber)[0].firstChild.data + "g"
+exe_mem = doc.getElementsByTagName("execMemGB")[0].firstChild.data + "g"
+driver_mem = doc.getElementsByTagName("driverMemGB")[0].firstChild.data + "g"
 
 start_time = time.time()
 
 cmdStr = "$SPARK_HOME/bin/spark-submit " + \
-"--class \"FilesDownloader\" --master " + mode + " --files " + configFilePath + " " + \
+"--class \"FilesDownloader\" --master " + deploy_mode + " --files " + configFilePath + " " + \
 "--driver-memory " + driver_mem + " --executor-memory " + exe_mem + " --num-executors " + numNodes + " " + \
 exeName + " " + configFilePath + " " + mode + " " + third_arg
 
