@@ -47,7 +47,6 @@ public class Configuration implements Serializable
 	private String gatkOpts;
 	private String tmpFolder;
 	private String sfFolder;
-	private String numInstances;
 	private String numTasks;
 	private String numThreads;
 	private String ignoreList;
@@ -58,7 +57,6 @@ public class Configuration implements Serializable
 	private String sec;
 	private String useKnownIndels;
 	private Long startTime;
-	private String execMemGB;
 	private String driverMemGB;
 	private String vcMemGB;
 	private ArrayList<Integer> chrLenArray;
@@ -106,10 +104,8 @@ public class Configuration implements Serializable
 			numRegions = document.getElementsByTagName("numRegions").item(0).getTextContent();
 			regionsFactor = document.getElementsByTagName("regionsFactor").item(0).getTextContent();
 			
-			numInstances = document.getElementsByTagName("numInstances" + part).item(0).getTextContent();
 			numTasks = document.getElementsByTagName("numTasks" + part).item(0).getTextContent();
 			numThreads = document.getElementsByTagName("numThreads" + part).item(0).getTextContent();
-			execMemGB = document.getElementsByTagName("execMemGB" + part).item(0).getTextContent();
 			driverMemGB = document.getElementsByTagName("driverMemGB" + part).item(0).getTextContent();
 			vcMemGB = document.getElementsByTagName("vcMemGB").item(0).getTextContent();
 			scc	= document.getElementsByTagName("standCC").item(0).getTextContent();
@@ -264,11 +260,6 @@ public class Configuration implements Serializable
 		return sfFolder;
 	}
 	
-	public String getNumInstances()
-	{
-		return numInstances;
-	}
-	
 	public String getNumTasks()
 	{
 		return numTasks;
@@ -287,11 +278,6 @@ public class Configuration implements Serializable
 	public String getNumRegions()
 	{
 		return numRegions;
-	}
-	
-	public void setNumInstances(String numInstances)
-	{
-		this.numInstances = numInstances;
 	}
 	
 	public void setNumThreads(String numThreads)
@@ -317,11 +303,6 @@ public class Configuration implements Serializable
 	public String getDriverMemGB()
 	{
 		return driverMemGB + "g";
-	}
-	
-	public String getExecMemGB()
-	{
-		return execMemGB + "g";
 	}
 	
 	public String getExecMemX()
@@ -362,10 +343,8 @@ public class Configuration implements Serializable
 		System.out.println("outputFolder:\t" + outputFolder);
 		System.out.println("tmpFolder:\t" + tmpFolder);
 		System.out.println("ignoreList:\t" + ignoreList);
-		System.out.println("numInstances:\t" + numInstances);
 		System.out.println("numTasks:\t" + numTasks);
 		System.out.println("numThreads:\t" + numThreads);
-		System.out.println("execMemGB:\t" + execMemGB);
 		System.out.println("driverMemGB:\t" + driverMemGB);
 		for (String key : chrNameMap.keySet()) {
 			System.out.println("\tChromosome " + key + " -> " + chrNameMap.get(key)); 
