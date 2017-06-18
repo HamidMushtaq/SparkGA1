@@ -146,7 +146,7 @@ object FilesDownloader
 		if (fileName.contains(config.getSnpFileName))
 			return false
 		
-		if (fileName.contains(config.getIndelFileName))
+		if ((config.getIndelFileName != "") && fileName.contains(config.getIndelFileName))
 			return false
 		
 		return true

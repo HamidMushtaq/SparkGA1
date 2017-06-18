@@ -32,7 +32,7 @@ if not os.path.isfile(configFilePath):
 	sys.exit(1)
 	
 mode = sys.argv[2]
-if (mode == "rm") or (mode == "rmExt") or (mode == "cp"):
+if (len(sys.argv) < 4) and ((mode == "rm") or (mode == "rmExt") or (mode == "cp")):
 	print "Extra parameter missing for " + mode
 	sys.exit(1)
 third_arg = ""
