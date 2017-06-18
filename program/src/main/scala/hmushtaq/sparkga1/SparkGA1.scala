@@ -832,7 +832,7 @@ object SparkGA1
 		val targets = tmpFileBase + ".intervals"
 		val MemString = config.getExecMemX()
 		val regionStr = " -L " + tmpFileBase + ".bed"
-		val indelStr = if (config.getUseKnownIndels().toBoolean) (" -known " + knownIndel) else ""; 
+		val indelStr = if (config.useKnownIndels) (" -known " + knownIndel) else ""; 
 		
 		// Realigner target creator
 		var cmdStr = "java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + "GenomeAnalysisTK.jar -T RealignerTargetCreator -nt " + 
@@ -869,7 +869,7 @@ object SparkGA1
 		val table = tmpFileBase + ".table"
 		val MemString = config.getExecMemX()
 		val regionStr = " -L " + tmpFileBase + ".bed"
-		val indelStr = if (config.getUseKnownIndels().toBoolean) (" -knownSites " + knownIndel) else ""; 
+		val indelStr = if (config.useKnownIndels) (" -knownSites " + knownIndel) else ""; 
 		
 		// Base recalibrator
 		var cmdStr = "java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + "GenomeAnalysisTK.jar -T BaseRecalibrator -nct " + 
@@ -1140,7 +1140,7 @@ object SparkGA1
 		hdfsManager.downloadIfRequired(refFileName.replace(".fasta", ".dict"), refFolder, config.getSfFolder)
 		hdfsManager.downloadIfRequired(refFileName + ".fai", refFolder, config.getSfFolder)
 		
-		if (config.getUseKnownIndels != "false")
+		if (config.useKnownIndels)
 		{
 			val indelFolder = getDirFromPath(config.getIndelPath())
 			val indelFileName = getFileNameFromPath(config.getIndelPath())

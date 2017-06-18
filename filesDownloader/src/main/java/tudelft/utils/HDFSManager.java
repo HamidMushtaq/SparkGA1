@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Hamid Mushtaq, TU Delft
+ * Copyright (C) 2016-2017 TU Delft, The Netherlands
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,6 +13,9 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Hamid Mushtaq
+ *
  */
 package tudelft.utils;
 
@@ -25,13 +28,15 @@ import java.nio.file.Files;
 import java.net.*;
 import java.lang.*;
 
+/**
+ *
+ * @author Hamid Mushtaq
+ */
 public class HDFSManager
 {
-	public static void create(String hadoopInstall, String fname)
+	public static void create(String fname)
 	{
 		org.apache.hadoop.conf.Configuration config = new org.apache.hadoop.conf.Configuration();
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/core-site.xml"));
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/hdfs-site.xml"));
 		
 		try
 		{
@@ -51,11 +56,9 @@ public class HDFSManager
         }
 	}
 	
-	public static void append(String hadoopInstall, String fname, String s)
+	public static void append(String fname, String s)
 	{
 		org.apache.hadoop.conf.Configuration config = new org.apache.hadoop.conf.Configuration();
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/core-site.xml"));
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/hdfs-site.xml"));
 		
 		try
 		{			
@@ -69,6 +72,46 @@ public class HDFSManager
 		{
             ex.printStackTrace();
         }
+	}
+	
+	public static int download(String fileName, String hdfsFolder, String localFolder)
+	{
+		org.apache.hadoop.conf.Configuration config = new org.apache.hadoop.conf.Configuration();
+		
+		try
+		{
+			FileSystem fs = FileSystem.get(config); 
+			
+			File f = new File(localFolder + fileName);
+			if (f.exists())
+				f.delete();
+			
+			fs.copyToLocalFile(new Path(hdfsFolder + fileName), 
+				new Path(localFolder + fileName));
+			return 1;
+		}
+		catch (IOException ex) 
+		{
+			ex.printStackTrace();
+			return 0;
+		}
+	}
+	
+	public static void upload(String fileName, String localFolder, String hdfsFolder)
+	{
+		org.apache.hadoop.conf.Configuration config = new org.apache.hadoop.conf.Configuration();
+		
+		try
+		{
+			FileSystem fs = FileSystem.get(config); 
+			
+			fs.copyFromLocalFile(true, true, new Path(localFolder + fileName), 
+				new Path(hdfsFolder + fileName));
+		}
+		catch (Exception ex) 
+		{
+			ex.printStackTrace();
+		}
 	}
 	
 	public static String getLS(String dir, boolean showHidden)
@@ -104,55 +147,34 @@ public class HDFSManager
 		}
 	}
 	
-	public static int download(String hadoopInstall, String fileName, String hdfsFolder, String localFolder)
+	private static String getSizeString(long fileLen)
 	{
-		org.apache.hadoop.conf.Configuration config = new org.apache.hadoop.conf.Configuration();
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/core-site.xml"));
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/hdfs-site.xml"));
+		float r = 0.0F;
+		float len = (float)fileLen;
+		String unit;
 		
-		try
+		if (len >= (1024*1024*1024))
 		{
-			FileSystem fs = FileSystem.get(config); 
-			
-			File f = new File(localFolder + fileName);
-			if (f.exists())
-				f.delete();
-			
-			fs.copyToLocalFile(new Path(hdfsFolder + fileName), 
-				new Path(localFolder + fileName));
-			return 1;
+			r = len / (1024*1024*1024);
+			unit = "GB";
 		}
-		catch (IOException ex) 
+		else if (len >= (1024*1024))
 		{
-			ex.printStackTrace();
-			return 0;
+			r = len / (1024*1024);
+			unit = "MB";
 		}
+		else
+		{
+			r = len / (1024);
+			unit = "KB";
+		}
+		
+		return String.format("%.1f %s", r, unit);
 	}
 	
-	public static void upload(String hadoopInstall, String fileName, String localFolder, String hdfsFolder)
+	public static String[] getFileList(String hdfsFolder)
 	{
 		org.apache.hadoop.conf.Configuration config = new org.apache.hadoop.conf.Configuration();
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/core-site.xml"));
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/hdfs-site.xml"));
-		
-		try
-		{
-			FileSystem fs = FileSystem.get(config); 
-			
-			fs.copyFromLocalFile(true, true, new Path(localFolder + fileName), 
-				new Path(hdfsFolder + fileName));
-		}
-		catch (Exception ex) 
-		{
-			ex.printStackTrace();
-		}
-	}
-
-	public static String[] getFileList(String hadoopInstall, String hdfsFolder)
-	{
-		org.apache.hadoop.conf.Configuration config = new org.apache.hadoop.conf.Configuration();
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/core-site.xml"));
-		config.addResource(new Path(hadoopInstall + "etc/hadoop/hdfs-site.xml"));
 		
 		try
 		{
@@ -170,29 +192,5 @@ public class HDFSManager
 			ex.printStackTrace();
 			return null;
 		}
-	}
-	
-	private static String getSizeString(long len)
-	{
-		Float r;
-		String unit;
-		
-		if (len > 1e9)
-		{
-			r = len / 1e9f;
-			unit = "GB";
-		}
-		else if (len > 1e6)
-		{
-			r = len / 1e6f;
-			unit = "MB";
-		}
-		else
-		{
-			r = len / 1e3f;
-			unit = "KB";
-		}
-		
-		return String.format("%.1f%s", r, unit);
 	}
 }

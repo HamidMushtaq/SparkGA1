@@ -1,0 +1,12 @@
+<configuration>
+	<!-- options for mode: yarn-cluster or yarn-client -->
+	<mode>yarn-client</mode>
+	<inputFolder>filesB37</inputFolder>
+	<refFileName>human_g1k_v37_decoy.fasta</refFileName>
+	<snpFileName>dbsnp_138.b37.vcf</snpFileName>
+	<indelFileName>1000G_phase1.indels.b37.vcf</indelFileName>
+	<sfFolder>/tmp/spark</sfFolder> 
+	<numNodes>4</numNodes>
+	<execMemGB>108</execMemGB>
+	<driverMemGB>2</driverMemGB>
+</configuration>

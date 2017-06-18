@@ -10,17 +10,18 @@ import os
 import time
 
 # Options:
-# 	cpAll: Copy all the reference and tool files to the tmp directory of all nodes
-# 	rmAll: Remove all files from the tmp directory of all nodes
-# 	rmExt: Remove files of a certain extension from the tmp directory of all nodes
-# 	ls: Display files in tmp directory of all nodes
-# 	cp: Copy a file in the tools directory to the tmp directory of all nodes
+# 	cpAll: Copy all the reference and vcf files to the local directory (sfFolder) of all nodes
+# 	cp: Copy a file from the input hdfs folder to the local directory (sfFolder) of all nodes
+# 	rmAll: Remove all files from the local directory (sfFolder) of all nodes
+# 	rmExt: Remove files of a certain extension from the local directory directory (sfFolder) of all nodes
+#	rm: Remove a file from the local directory (sfFolder) of all nodes
+# 	ls: Display files in the local directory (sfFolder) of all nodes
 
 exeName = "filesDownloader/filesdownloader_2.10-1.0.jar"
 
 if len(sys.argv) < 3:
 	print "Too few arguments"
-	print "Usage: python runDownloader.py configFile mode [extra]" 
+	print "Usage: python runDownloader.py config.xml mode [extra]" 
 	print "Example: python runDownloader.py config.xml cpAll" 
 	sys.exit(1)
 	
@@ -31,22 +32,25 @@ if not os.path.isfile(configFilePath):
 	sys.exit(1)
 	
 mode = sys.argv[2]
+if (mode == "rm") or (mode == "rmExt") or (mode == "cp"):
+	print "Extra parameter missing for " + mode
+	sys.exit(1)
 third_arg = ""
 if len(sys.argv) == 4:
 	third_arg = sys.argv[3]
 
 doc = minidom.parse(configFilePath)
 numNodes = doc.getElementsByTagName("numNodes")[0].firstChild.data
-nodeMemoryGB = doc.getElementsByTagName("nodeMemoryGB")[0].firstChild.data
-usedMemoryGB = str(int(nodeMemoryGB) * 80 / 100)
-	
+exe_mem = doc.getElementsByTagName("execMemGB" + partNumber)[0].firstChild.data + "g"
+driver_mem = doc.getElementsByTagName("driverMemGB" + partNumber)[0].firstChild.data + "g"
+
 start_time = time.time()
 
 cmdStr = "$SPARK_HOME/bin/spark-submit " + \
-"--class \"FilesDownloader\" --master yarn-cluster --files " + configFilePath + " " + \
-"--driver-memory 8g --executor-memory " + usedMemoryGB + "g --num-executors " + numNodes + " " + \
-exeName + " " + os.path.basename(configFilePath) + " " + mode + " " + third_arg
-	
+"--class \"FilesDownloader\" --master " + mode + " --files " + configFilePath + " " + \
+"--driver-memory " + driver_mem + " --executor-memory " + exe_mem + " --num-executors " + numNodes + " " + \
+exeName + " " + configFilePath + " " + mode + " " + third_arg
+
 print cmdStr
 os.system(cmdStr)
 

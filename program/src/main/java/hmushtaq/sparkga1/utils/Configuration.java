@@ -304,11 +304,6 @@ public class Configuration implements Serializable
 	{
 		return sec.toString();
 	}
-	
-	public String getUseKnownIndels()
-	{
-		return useKnownIndels;
-	}
 		
 	public Long getStartTime()
 	{
@@ -341,6 +336,11 @@ public class Configuration implements Serializable
 	public boolean useExome()
 	{
 		return !exomePath.trim().equals("");
+	}
+	
+	public boolean useKnownIndels()
+	{
+		return !indelPath.trim().equals("");
 	}
 	
 	public int getChrIndex(String chrName)

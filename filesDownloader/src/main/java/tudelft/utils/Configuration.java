@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Hamid Mushtaq, TU Delft
+ * Copyright (C) 2016-2017 TU Delft, The Netherlands
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,6 +13,9 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors: Hamid Mushtaq
+ *
  */
 package tudelft.utils;
 
@@ -23,52 +26,40 @@ import org.w3c.dom.Document;
 import java.io.Serializable;
 import java.lang.System;
 
+/**
+ *
+ * @author Hamid Mushtaq
+ */
 public class Configuration implements Serializable
 {
 	private String mode;
-	private String refPath;
-	private String snpPath;
-	private String indelPath;
-	private String exomePath;
+	private String refFileName;
+	private String snpFileName;
+	private String indelFileName;
 	private String inputFolder;
-	private String outputFolder;
-	private String toolsFolder;
-	private String rgString;
-	private String gatkOpts;
-	private String tmpFolder;
-	private String hadoopInstall;
-	private String numInstances;
-	private String numRegions;
-	private Long startTime;
-	private String execMemGB;
+	private String sfFolder;
+	private String numNodes;
 	
-	public void initialize(String configFile)
+	public void initialize(String configFilePath, String deployMode)
 	{	
 		try
 		{
+			String configFile = configFilePath;
+			if (deployMode.equals("cluster"))
+				configFile = getFileNameFromPath(configFilePath);
+			
 			File file = new File(configFile);
 			DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
 			Document document = documentBuilder.parse(file);
 			
 			mode = document.getElementsByTagName("mode").item(0).getTextContent();
-			refPath = document.getElementsByTagName("refPath").item(0).getTextContent();
-			snpPath = document.getElementsByTagName("snpPath").item(0).getTextContent();
-			indelPath = document.getElementsByTagName("indelPath").item(0).getTextContent();
-			exomePath = document.getElementsByTagName("exomePath").item(0).getTextContent();
+			refFileName = document.getElementsByTagName("refFileName").item(0).getTextContent();
+			snpFileName = document.getElementsByTagName("snpFileName").item(0).getTextContent();
+			indelFileName = document.getElementsByTagName("indelFileName").item(0).getTextContent();
 			inputFolder = correctFolderName(document.getElementsByTagName("inputFolder").item(0).getTextContent());
-			outputFolder = correctFolderName(document.getElementsByTagName("outputFolder").item(0).getTextContent());
-			toolsFolder = correctFolderName(document.getElementsByTagName("toolsFolder").item(0).getTextContent());
-			rgString = document.getElementsByTagName("rgString").item(0).getTextContent();
-			gatkOpts = document.getElementsByTagName("gatkOpts").item(0).getTextContent();
-			tmpFolder = correctFolderName(document.getElementsByTagName("tmpFolder").item(0).getTextContent());
-			hadoopInstall = correctFolderName(document.getElementsByTagName("hadoopInstall").item(0).getTextContent());
-			numRegions = document.getElementsByTagName("numRegions").item(0).getTextContent();
-			
-			numInstances = document.getElementsByTagName("numNodes").item(0).getTextContent();
-			execMemGB = document.getElementsByTagName("nodeMemoryGB").item(0).getTextContent();
-	
-			startTime = System.currentTimeMillis();
+			sfFolder = correctFolderName(document.getElementsByTagName("sfFolder").item(0).getTextContent());
+			numNodes = document.getElementsByTagName("numNodes").item(0).getTextContent();
 			
 			print();
 		}
@@ -91,7 +82,10 @@ public class Configuration implements Serializable
 	
 	private String getFileNameFromPath(String path)
 	{
-		return path.substring(path.lastIndexOf('/') + 1);
+		if (path.contains("/"))
+			return path.substring(path.lastIndexOf('/') + 1);
+		else
+			return path;
 	}
 	
 	public String getMode()
@@ -99,24 +93,19 @@ public class Configuration implements Serializable
 		return mode;
 	}
 	
-	public String getRefPath()
+	public String getRefFileName()
 	{
-		return refPath;
+		return refFileName;
 	}
 	
-	public String getSnpPath()
+	public String getSnpFileName()
 	{
-		return snpPath;
+		return snpFileName;
 	}
 	
-	public String getIndelPath()
+	public String getIndelFileName()
 	{
-		return indelPath;
-	}
-	
-	public String getExomePath()
-	{
-		return exomePath;
+		return indelFileName;
 	}
 	
 	public String getInputFolder()
@@ -124,93 +113,25 @@ public class Configuration implements Serializable
 		return inputFolder;
 	}
 	
-	public String getOutputFolder()
+	public String getSfFolder()
 	{
-		return outputFolder;
+		return inputFolder;
 	}
 	
-	public String getToolsFolder()
+	public String getNumNodes()
 	{
-		return toolsFolder;
-	}
-	
-	public String getRGString()
-	{
-		return rgString;
-	}
-	
-	public String getRGID()
-	{
-		int start = rgString.indexOf("ID:");
-		int end = rgString.indexOf("\\", start);
-		
-		return rgString.substring(start+3, end);
-	}
-	
-	public String getGATKopts()
-	{
-		return gatkOpts;
-	}
-	
-	public String getTmpFolder()
-	{
-		return tmpFolder;
-	}
-	
-	public String getNumInstances()
-	{
-		return numInstances;
-	}
-	
-	public String getNumRegions()
-	{
-		return numRegions;
-	}
-	
-	public void setNumInstances(String numInstances)
-	{
-		this.numInstances = numInstances;
-	}
-		
-	public Long getStartTime()
-	{
-		return startTime;
-	}
-	
-	public String getExecMemGB()
-	{
-		return execMemGB + "g";
-	}
-	
-	public String getExecMemX()
-	{
-		Integer value = Integer.parseInt(execMemGB) * 1024;
-		
-		return "-Xmx" + value.toString() + "m";
-	}
-	
-	public String getHadoopInstall()
-	{
-		return hadoopInstall;
-	}
-	
-	public boolean useExome()
-	{
-		return !exomePath.trim().equals("");
+		return numNodes;
 	}
 	
 	public void print()
 	{
 		System.out.println("***** Configuration *****");
 		System.out.println("Mode:\t\t" + "|" + mode + "|");
-		System.out.println("Use exome = " + useExome());
-		System.out.println("refPath:\t" + refPath);
+		System.out.println("refFileName:\t" + refFileName);
+		System.out.println("snpFileName:\t" + snpFileName);
+		System.out.println("indelFileName:\t" + indelFileName);
 		System.out.println("inputFolder:\t" + inputFolder);
-		System.out.println("outputFolder:\t" + outputFolder);
-		System.out.println("tmpFolder:\t" + tmpFolder);
-		System.out.println("hadoopInstall:\t" + hadoopInstall);
-		System.out.println("numInstances:\t" + numInstances);
-		System.out.println("execMemGB:\t" + execMemGB);
+		System.out.println("sfFolder:\t" + sfFolder);
 		System.out.println("*************************");
 	}
 }

@@ -14,7 +14,7 @@ import glob
 
 if len(sys.argv) < 3:
 	print("Not enough arguments!")
-	print("Example usage: ./run2.py config.xml 1")
+	print("Example usage: ./runPart.py config.xml 1")
 	sys.exit(1)
 
 exeName = "program/sparkga1_2.11-1.0.jar"
@@ -37,7 +37,6 @@ toolsFolder = doc.getElementsByTagName("toolsFolder")[0].firstChild.data
 numInstances = doc.getElementsByTagName("numInstances" + partNumber)[0].firstChild.data
 numTasks = doc.getElementsByTagName("numTasks" + partNumber)[0].firstChild.data
 exe_mem = doc.getElementsByTagName("execMemGB" + partNumber)[0].firstChild.data + "g"
-double_exe_mem = str(int(doc.getElementsByTagName("execMemGB" + partNumber)[0].firstChild.data) * 2) + "g"
 driver_mem = doc.getElementsByTagName("driverMemGB" + partNumber)[0].firstChild.data + "g"
 
 print "mode = |" + mode + "|"

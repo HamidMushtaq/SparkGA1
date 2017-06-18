@@ -1,24 +1,22 @@
 <configuration>
-	<!-- options for mode: hadoop, local -->
-	<mode>hadoop</mode>
+	<!-- options for mode: yarn-client, yarn-cluster or local -->
+	<mode>yarn-cluster</mode>
 	<refPath>filesB37/human_g1k_v37_decoy.fasta</refPath>
 	<snpPath>filesB37/dbsnp_138.b37.vcf</snpPath>
 	<indelPath>filesB37/1000G_phase1.indels.b37.vcf</indelPath>
 	<exomePath></exomePath>
 	<inputFolder>ibm_chunks</inputFolder>
 	<outputFolder>outputb4</outputFolder> 
-	<toolsFolder>power8tools</toolsFolder>
+	<toolsFolder>tools</toolsFolder>
 	<tmpFolder>./</tmpFolder>
 	<sfFolder>/disk1/local/users/zalars/bsparkFiles</sfFolder>
-	<hadoopInstall>$HADOOP_INSTALL</hadoopInstall>
 	<rgString>@RG\tID:sample_lane\tSM:sample\tPL:illumina\tLB:sample\tPU:lane</rgString>
 	<extraBWAParams></extraBWAParams>
 	<gatkOpts></gatkOpts>
-	<ignoreList>MT</ignoreList>
-	<nodeMemoryGB>128</nodeMemoryGB>
-	<numNodes>4</numNodes>
-	<numRegions>200</numRegions>
-	<regionsFactor>6</regionsFactor>
+	<ignoreList></ignoreList>
+	<downloadRef>false</downloadRef>
+	<numRegions>300</numRegions>
+	<regionsFactor>3</regionsFactor>
 	<!-- ===================== -->
 	<!-- parameters for part 1 -->
 	<execMemGB1>48</execMemGB1> 						
