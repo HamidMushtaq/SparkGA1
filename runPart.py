@@ -35,10 +35,9 @@ tmpFolder = doc.getElementsByTagName("tmpFolder")[0].firstChild.data
 toolsFolder = doc.getElementsByTagName("toolsFolder")[0].firstChild.data
 # Parameters for this part
 numTasks = doc.getElementsByTagName("numTasks" + partNumber)[0].firstChild.data
-numInstancesField = doc.getElementsByTagName("numInstances" + partNumber)[0].firstChild
-numInstances = "" if (numInstancesField == None) else numInstancesField.data
-exe_mem_field = doc.getElementsByTagName("execMemGB" + partNumber)[0].firstChild
-exe_mem = "" if (exe_mem_field == None) else exe_mem_field.data + "g"
+if mode != 'local':
+	numInstances = doc.getElementsByTagName("numInstances" + partNumber)[0].firstChild.data
+	exe_mem = doc.getElementsByTagName("execMemGB" + partNumber)[0].firstChild.data + "g"
 driver_mem = doc.getElementsByTagName("driverMemGB" + partNumber)[0].firstChild.data + "g"
 
 print "mode = |" + mode + "|"
