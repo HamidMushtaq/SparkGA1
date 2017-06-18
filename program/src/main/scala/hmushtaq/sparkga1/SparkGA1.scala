@@ -1362,7 +1362,12 @@ object SparkGA1
 			vcf.setName("rdd_vcc")
 			//vcf.distinct.sortByKey().map(_._2).coalesce(1, false).saveAsTextFile(config.getOutputFolder + "combinedVCF")
 			val vcfCollected = vcf.distinct.sortByKey().map(_._2 + '\n').collect
-			val writer = hdfsManager.open(config.getOutputFolder + "sparkCombined.vcf")
+			val writer = {
+				if (config.getMode == "local")
+					new PrintWriter(config.getOutputFolder + "sparkCombined.vcf")
+				else
+					hdfsManager.open(config.getOutputFolder + "sparkCombined.vcf")
+			}
 			for(e <- vcfCollected)
 				writer.write(e)
 			writer.close
