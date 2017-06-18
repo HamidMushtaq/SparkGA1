@@ -47,7 +47,6 @@ public class Configuration implements Serializable
 	private String gatkOpts;
 	private String tmpFolder;
 	private String sfFolder;
-	private String downloadRef;
 	private String numInstances;
 	private String numTasks;
 	private String numThreads;
@@ -93,7 +92,6 @@ public class Configuration implements Serializable
 			gatkOpts = document.getElementsByTagName("gatkOpts").item(0).getTextContent();
 			tmpFolder = correctFolderName(document.getElementsByTagName("tmpFolder").item(0).getTextContent());
 			sfFolder = correctFolderName(document.getElementsByTagName("sfFolder").item(0).getTextContent());
-			downloadRef = document.getElementsByTagName("downloadRef").item(0).getTextContent();
 			ignoreList = document.getElementsByTagName("ignoreList").item(0).getTextContent();
 			//////////////////////////////////////////////////////////////////
 			ignoreListSet = new HashSet<String>();
@@ -332,11 +330,6 @@ public class Configuration implements Serializable
 		Integer execValue = value; //- 1280; // 1280 mb less
 		
 		return "-Xmx" + execValue.toString() + "m";
-	}
-	
-	public boolean getDownloadRef()
-	{
-		return Boolean.valueOf(downloadRef);
 	}
 	
 	public boolean useExome()

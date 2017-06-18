@@ -64,6 +64,8 @@ object SparkGA1
 	// Scheduling
 	final val sizeBasedLBScheduling = true
 	final val sizeBasedVCScheduling = true
+	//
+	final val downloadRef = false // Keep this false until the downloading part is implemented properly.
 	//////////////////////////////////////////////////////////////////////////////
 	def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (String, Long, Int, Int, String))]) = 
 	{
@@ -84,7 +86,7 @@ object SparkGA1
 			dbgLog("bwa/" + x, t0, "0a\tDownloading from the HDFS", config)
 			hdfsManager.download(x + ".gz", config.getInputFolder, tmpDir, false)
 			input_file = tmpDir + x + ".gz"
-			if (config.getDownloadRef)
+			if (downloadRef)
 			{
 				dbgLog("bwa/" + x, t0, "*\tDownloading reference files for bwa if required.", config)
 				downloadBWAFiles("bwa/" + x, config)
@@ -762,14 +764,14 @@ object SparkGA1
 		
 		dbgLog("region_" + chrRegion, t0, "3\tPicard processing started", config)
 		var cmdRes = picardPreprocess(tmpFileBase, config)
-		if (config.getDownloadRef)
+		if (downloadRef)
 		{
 			dbgLog("region_" + chrRegion, t0, "*\tDownloading VCF ref files", config)
 			downloadVCFRefFiles("region_" + chrRegion, config)
 		}
 		if (doIndelRealignment)
 			cmdRes += indelRealignment(tmpFileBase, t0, chrRegion, config)
-		if (config.getDownloadRef)
+		if (downloadRef)
 		{
 			dbgLog("region_" + chrRegion, t0, "*\tDownloading snp file", config)
 			downloadVCFSnpFile("region_" + chrRegion, config)
