@@ -48,4 +48,4 @@ for i in range(0, iterations):
 
 totalTime = getElapsedStr(int(times_list[iterations]-times_list[0]))
 addToLog(">> From part " + str(startingPart) + " till end, it took " + totalTime)
-print "<< From part " + str(startingPart) + " till end, it took " + totalTime + " >>"
+print "<< From part " + str(startingPart) + " till the end, it took " + totalTime + " >>"
