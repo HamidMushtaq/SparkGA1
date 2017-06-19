@@ -40,7 +40,7 @@ if mode != 'local':
 	exe_mem = doc.getElementsByTagName("execMemGB" + partNumber)[0].firstChild.data + "g"
 driver_mem = doc.getElementsByTagName("driverMemGB" + partNumber)[0].firstChild.data + "g"
 
-print "mode = |" + mode + "|"
+print "mode = [" + mode + "]"
 
 def getNumOfHadoopChunks():
 	cat = subprocess.Popen(["hadoop", "fs", "-ls", inputFolder], stdout=subprocess.PIPE)
