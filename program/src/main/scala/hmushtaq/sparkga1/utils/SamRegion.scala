@@ -31,7 +31,7 @@ import scala.collection.mutable._
  */
 class SamRegion(header: String, fileName: String, config: Configuration)
 {
-	private final val USE_FILE = false
+	private final val USE_FILE = true
 	private var minPos = 0
 	private var maxPos = 0
 	private var size: Long = 0
