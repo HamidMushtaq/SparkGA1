@@ -1,9 +1,9 @@
 <configuration>
 	<!-- options for mode: yarn-client, yarn-cluster or local -->
 	<mode>yarn-cluster</mode>
-	<refPath>filesB37/human_g1k_v37_decoy.fasta</refPath>
-	<snpPath>filesB37/dbsnp_138.b37.vcf</snpPath>
-	<indelPath>filesB37/1000G_phase1.indels.b37.vcf</indelPath>
+	<refPath>human_g1k_v37_decoy.fasta</refPath>
+	<snpPath>dbsnp_138.b37.vcf</snpPath>
+	<indelPath></indelPath>
 	<exomePath></exomePath>
 	<inputFolder>ibm_chunks</inputFolder>
 	<outputFolder>outputb4</outputFolder> 
@@ -14,7 +14,6 @@
 	<extraBWAParams></extraBWAParams>
 	<gatkOpts></gatkOpts>
 	<ignoreList></ignoreList>
-	<downloadRef>false</downloadRef>
 	<numRegions>300</numRegions>
 	<regionsFactor>3</regionsFactor>
 	<!-- ===================== -->
@@ -40,5 +39,4 @@
 	<!-- ===================== -->
 	<standEC>10</standEC>
 	<standCC>30</standCC>
-	<useKnownIndels>false</useKnownIndels>
 </configuration>
