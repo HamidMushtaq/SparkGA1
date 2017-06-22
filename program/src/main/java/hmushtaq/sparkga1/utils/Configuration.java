@@ -23,7 +23,7 @@ import htsjdk.samtools.*;
 import java.io.File;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
-import org.w3c.dom.Document;
+import org.w3c.dom.*;
 import java.io.Serializable;
 import java.lang.System;
 import java.util.*;
@@ -59,6 +59,8 @@ public class Configuration implements Serializable
 	private Long startTime;
 	private String driverMemGB;
 	private String vcMemGB;
+	private boolean performIndelRealignment;
+	private boolean performPrintReads;
 	private ArrayList<Integer> chrLenArray;
 	private int[] chrRegionSizeArray;
 	private HashMap<String, Integer> chrNameMap;
@@ -110,6 +112,12 @@ public class Configuration implements Serializable
 			vcMemGB = document.getElementsByTagName("vcMemGB").item(0).getTextContent();
 			scc	= document.getElementsByTagName("standCC").item(0).getTextContent();
 			sec	= document.getElementsByTagName("standEC").item(0).getTextContent();
+			sec	= document.getElementsByTagName("standEC").item(0).getTextContent();
+			sec	= document.getElementsByTagName("standEC").item(0).getTextContent();
+			
+			// Optional parameters
+			performIndelRealignment = trueIfTagDoesntExist(document, "doIndelRealignment");
+			performPrintReads = trueIfTagDoesntExist(document, "doPrintReads");
 			
 			if ( (!mode.equals("local")) && (!mode.equals("yarn-client")) && (!mode.equals("yarn-cluster")) )
 				throw new IllegalArgumentException("Unrecognized mode type (" + mode + "). It should be either local, yarn-client or yarn-cluster.");
@@ -139,6 +147,18 @@ public class Configuration implements Serializable
 			e.printStackTrace();
 			System.exit(1);
 		}
+	}
+	
+	private boolean trueIfTagDoesntExist(Document document, String tag)
+	{
+		NodeList nl = document.getElementsByTagName(tag);
+		if (nl.getLength() > 0)
+		{
+			String tagValue = nl.item(0).getTextContent();
+			return Boolean.parseBoolean(tagValue);
+		}
+		else 
+			return true;
 	}
 	
 	private String correctFolderName(String s)
@@ -323,6 +343,16 @@ public class Configuration implements Serializable
 		return !indelPath.trim().equals("");
 	}
 	
+	public boolean doIndelRealignment()
+	{
+		return performIndelRealignment;
+	}
+	
+	public boolean doPrintReads()
+	{
+		return performPrintReads;
+	}
+	
 	public int getChrIndex(String chrName)
 	{
 		return chrNameMap.get(chrName);
@@ -346,6 +376,8 @@ public class Configuration implements Serializable
 		System.out.println("numTasks:\t" + numTasks);
 		System.out.println("numThreads:\t" + numThreads);
 		System.out.println("driverMemGB:\t" + driverMemGB);
+		System.out.println("doIndelRealignment:\t" + performIndelRealignment);
+		System.out.println("doPrintReads:\t" + performPrintReads);
 		for (String key : chrNameMap.keySet()) {
 			System.out.println("\tChromosome " + key + " -> " + chrNameMap.get(key)); 
 		}
