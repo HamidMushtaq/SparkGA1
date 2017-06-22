@@ -1121,6 +1121,7 @@ object SparkGA1
 			inputData.setName("rdd_inputData")
 			val vcf = inputData.map(x => variantCall(x, bcConfig.value)).flatMap(x=> getVCF(x._1, bcConfig.value))
 			vcf.setName("rdd_vcc")
+			LogWriter.statusLog("Variant calling finished:", ((System.currentTimeMillis - t0) / 1000) + "\tsecs", config)
 			try
 			{
 				//vcf.distinct.sortByKey().map(_._2).coalesce(1, false).saveAsTextFile(config.getOutputFolder + "combinedVCF")
