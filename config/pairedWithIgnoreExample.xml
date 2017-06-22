@@ -50,4 +50,8 @@
 	<!-- ===================== -->
 	<standEC>10</standEC>
 	<standCC>30</standCC>
+	<!-- Optional, true if ommitted -->
+	<doIndelRealignment>false</doIndelRealignment>
+	<doPrintReads>false</doPrintReads>
+	<!-- ===================== -->
 </configuration>
