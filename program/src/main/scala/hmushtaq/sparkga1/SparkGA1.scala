@@ -1179,7 +1179,7 @@ object SparkGA1
 		else
 		{
 			conf.set("spark.shuffle.blockTransferService", "nio") 
-			conf.set("spark.network.timeout", "12000")
+			//conf.set("spark.network.timeout", "12000")
 		}
 	   
 		val bcConfig = sc.broadcast(config)
@@ -1360,17 +1360,25 @@ object SparkGA1
 			inputData.setName("rdd_inputData")
 			val vcf = inputData.map(x => variantCall(x, bcConfig.value)).flatMap(x=> getVCF(x._1, bcConfig.value))
 			vcf.setName("rdd_vcc")
-			//vcf.distinct.sortByKey().map(_._2).coalesce(1, false).saveAsTextFile(config.getOutputFolder + "combinedVCF")
-			val vcfCollected = vcf.distinct.sortByKey().map(_._2 + '\n').collect
-			val writer = {
-				if (config.getMode == "local")
-					new PrintWriter(config.getOutputFolder + "sparkCombined.vcf")
-				else
-					hdfsManager.open(config.getOutputFolder + "sparkCombined.vcf")
+			try
+			{
+				//vcf.distinct.sortByKey().map(_._2).coalesce(1, false).saveAsTextFile(config.getOutputFolder + "combinedVCF")
+				val vcfCollected = vcf.distinct.sortByKey().map(_._2 + '\n').collect
+				val writer = {
+					if (config.getMode == "local")
+						new PrintWriter(config.getOutputFolder + "sparkCombined.vcf")
+					else
+						hdfsManager.open(config.getOutputFolder + "sparkCombined.vcf")
+				}
+				for(e <- vcfCollected)
+					writer.write(e)
+				writer.close
 			}
-			for(e <- vcfCollected)
-				writer.write(e)
-			writer.close
+			finally 
+			{
+				// Close spark context
+				sc.stop()
+			}
 		}
 		//////////////////////////////////////////////////////////////////////////
 		var et = (System.currentTimeMillis - t0) / 1000
