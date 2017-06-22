@@ -840,7 +840,7 @@ object SparkGA1
 		var cmdStr = "java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + "GenomeAnalysisTK.jar -T BaseRecalibrator -nct " + 
 			config.getNumThreads() + " -R " + FileManager.getRefFilePath(config) + " -I " + tmpFile1 + " -o " + table + regionStr + 
 			" --disable_auto_index_creation_and_locking_when_reading_rods" + indelStr + " -knownSites " + knownSite
-		LogWriter.dbgLog("region_" + chrRegion, "6\t" + cmdStr, config)
+		LogWriter.dbgLog("vcf/region_" + chrRegion, "6\t" + cmdStr, config)
 		var cmdRes = cmdStr.!
 
 		if (config.doPrintReads)
@@ -876,7 +876,7 @@ object SparkGA1
 			config.getNumThreads() + " -R " + FileManager.getRefFilePath(config) + " -I " + tmpFile2 + bqsrStr + " --genotyping_mode DISCOVERY -o " + snps + 
 			" -stand_call_conf " + config.getSCC() + " -stand_emit_conf " + config.getSEC() + regionStr + 
 			" --no_cmdline_in_header --disable_auto_index_creation_and_locking_when_reading_rods"
-		LogWriter.dbgLog("region_" + chrRegion, "8\t" + cmdStr, config)
+		LogWriter.dbgLog("vcf/region_" + chrRegion, "8\t" + cmdStr, config)
 		var cmdRes = cmdStr.!
 		
 		// Delete temporary files
