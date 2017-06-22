@@ -746,7 +746,7 @@ object SparkGA1
 		if (config.getMode() != "local")
 		{
 			new File(config.getTmpFolder() + "." + chrRegion + ".vcf.crc").delete()
-			hdfsManager.upload(chrRegion + ".vcf", config.getTmpFolder, config.getOutputFolder + "vcfs", true)
+			hdfsManager.upload(chrRegion + ".vcf", config.getTmpFolder, config.getOutputFolder + "vcfs/", true)
 		}
 		
 		LogWriter.dbgLog("vcf/region_" + chrRegion, "9\tOutput written to vcf file", config)
@@ -897,7 +897,7 @@ object SparkGA1
 		val hdfsManager = new HDFSManager
 		
 		if (config.getMode() != "local")
-			hdfsManager.download(chrRegion + ".vcf", config.getOutputFolder + "vcfs", config.getTmpFolder, false)
+			hdfsManager.download(chrRegion + ".vcf", config.getOutputFolder + "vcfs/", config.getTmpFolder, false)
 		
 		if (!Files.exists(Paths.get(fileName)))
 			return a.toArray
