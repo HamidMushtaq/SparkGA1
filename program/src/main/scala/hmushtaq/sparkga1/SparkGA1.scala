@@ -1000,6 +1000,7 @@ object SparkGA1
 			// Run instances of bwa and get the output as Key Value pairs
 			// <(chr, reg), fname>
 			val bwaOutput = inputData.flatMap(x => bwaRun(x, bcConfig.value))
+			bwaOutput.setName("rdd_bwaOutput")
 			var bwaOutStr = new StringBuilder
 			for(e <- bwaOutput.collect)
 			{
@@ -1042,6 +1043,7 @@ object SparkGA1
 			// <(chr, reg), Array((fname, numOfReads, minPos, maxPos))>
 			val chrReg = inputData.groupByKey
 			chrReg.cache()
+			chrReg.setName("rdd_chrReg")
 			val avgReadsPerRegion = totalReads / chrReg.count
 			// Hamid
 			LogWriter.statusLog("chrReg: ", "Chr regions:" + chrReg.count + ", Total reads: " + avgReadsPerRegion, config)
@@ -1057,6 +1059,7 @@ object SparkGA1
 					chrRegByReads.map(x => makeBAMFiles(x._1, x._2.toArray, avgReadsPerRegion, bcConfig.value))
 				}
 			}
+			loadBalRegions.setName("rdd_loadBalRegions")
 			//////////////////////////////////////////////////////////////////////
 			val x = loadBalRegions.collect
 			var regions1Str = new StringBuilder
