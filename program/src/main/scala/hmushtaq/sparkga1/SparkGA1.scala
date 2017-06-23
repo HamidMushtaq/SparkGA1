@@ -964,34 +964,24 @@ object SparkGA1
 		var t0 = System.currentTimeMillis
 		val numOfRegions = config.getNumRegions.toInt
 		// Spark Listener
-		/*sc.addSparkListener(new SparkListener() 
+		sc.addSparkListener(new SparkListener() 
 		{
-			override def onApplicationStart(applicationStart: SparkListenerApplicationStart) 
-			{
-				LogWriter.statusLog("SparkListener:", t0, getTimeStamp() + " Spark ApplicationStart: " + applicationStart.appName + "\n", config)
-			}
-
-			override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) 
-			{
-				LogWriter.statusLog("SparkListener:", t0, getTimeStamp() + " Spark ApplicationEnd: " + applicationEnd.time + "\n", config)
-			}
-
 			override def onStageCompleted(stageCompleted: SparkListenerStageCompleted) 
 			{
 				val map = stageCompleted.stageInfo.rddInfos
 				map.foreach(row => {
 					if (row.isCached)
 					{	
-						LogWriter.statusLog("SparkListener:", t0, getTimeStamp() + " " + row.name + ": memSize = " + (row.memSize / (1024*1024)) + 
+						LogWriter.statusLog("SparkListener:", row.name + ": memSize = " + (row.memSize / (1024*1024)) + 
 								"MB, diskSize " + row.diskSize + ", numPartitions = " + row.numPartitions + "-" + row.numCachedPartitions, config)
 					}
 					else if (row.name.contains("rdd_"))
 					{
-						LogWriter.statusLog("SparkListener:", t0, getTimeStamp() + " " + row.name + " processed!", config)
+						LogWriter.statusLog("SparkListener:", row.name + " processed!", config)
 					}
 				})
 			}
-		});*/
+		});
 		//////////////////////////////////////////////////////////////////////////
 		if (part == 1)
 		{ 
@@ -1120,8 +1110,7 @@ object SparkGA1
 			//////////////////////////////////////////////////////////////////////
 			inputData.setName("rdd_inputData")
 			val vcf = inputData.map(x => variantCall(x, bcConfig.value)).flatMap(x=> getVCF(x._1, bcConfig.value))
-			vcf.setName("rdd_vcc")
-			LogWriter.statusLog("Variant calling finished:", ((System.currentTimeMillis - t0) / 1000) + "\tsecs", config)
+			vcf.setName("rdd_vcf")
 			try
 			{
 				//vcf.distinct.sortByKey().map(_._2).coalesce(1, false).saveAsTextFile(config.getOutputFolder + "combinedVCF")
