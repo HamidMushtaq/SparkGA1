@@ -82,17 +82,17 @@ public class Configuration implements Serializable
 			mode = document.getElementsByTagName("mode").item(0).getTextContent();
 			refPath = document.getElementsByTagName("refPath").item(0).getTextContent();
 			snpPath = document.getElementsByTagName("snpPath").item(0).getTextContent();
-			indelPath = document.getElementsByTagName("indelPath").item(0).getTextContent();
-			exomePath = document.getElementsByTagName("exomePath").item(0).getTextContent();
+			indelPath = emptyIfTagDoesntExist(document, "indelPath");
+			exomePath = emptyIfTagDoesntExist(document, "exomePath");
 			inputFolder = correctFolderName(document.getElementsByTagName("inputFolder").item(0).getTextContent());
 			outputFolder = correctFolderName(document.getElementsByTagName("outputFolder").item(0).getTextContent());
 			toolsFolder = correctFolderName(document.getElementsByTagName("toolsFolder").item(0).getTextContent());
 			rgString = document.getElementsByTagName("rgString").item(0).getTextContent();
 			extraBWAParams = document.getElementsByTagName("extraBWAParams").item(0).getTextContent();
-			gatkOpts = document.getElementsByTagName("gatkOpts").item(0).getTextContent();
+			gatkOpts = emptyIfTagDoesntExist(document, "gatkOpts");
 			tmpFolder = correctFolderName(document.getElementsByTagName("tmpFolder").item(0).getTextContent());
-			sfFolder = correctFolderName(document.getElementsByTagName("sfFolder").item(0).getTextContent());
-			ignoreList = document.getElementsByTagName("ignoreList").item(0).getTextContent();
+			sfFolder = correctFolderName(emptyIfTagDoesntExist(document, "sfFolder"));
+			ignoreList = emptyIfTagDoesntExist(document, "ignoreList");
 			//////////////////////////////////////////////////////////////////
 			ignoreListSet = new HashSet<String>();
 			String[] toIgnoreArray = ignoreList.trim().split(",");
@@ -161,12 +161,21 @@ public class Configuration implements Serializable
 			return true;
 	}
 	
+	private String emptyIfTagDoesntExist(Document document, String tag)
+	{
+		NodeList nl = document.getElementsByTagName(tag);
+		if (nl.getLength() > 0)
+			return nl.item(0).getTextContent();
+		else 
+			return "";
+	}
+	
 	private String correctFolderName(String s)
 	{
 		String r = s.trim();
 		
 		if (r.equals(""))
-			return r;
+			return "";
 		
 		if (r.charAt(r.length() - 1) != '/')
 			return r + '/';
@@ -327,8 +336,7 @@ public class Configuration implements Serializable
 	
 	public String getExecMemX()
 	{
-		Integer value = Integer.parseInt(vcMemGB) * 1024;
-		Integer execValue = value; //- 1280; // 1280 mb less
+		Integer execValue = Integer.parseInt(vcMemGB) * 1024; 
 		
 		return "-Xmx" + execValue.toString() + "m";
 	}
@@ -367,17 +375,18 @@ public class Configuration implements Serializable
 	{
 		System.out.println("***** Configuration *****");
 		System.out.println("Mode:\t\t" + "|" + mode + "|");
-		System.out.println("Use exome = " + useExome());
-		System.out.println("refPath:\t" + refPath);
-		System.out.println("inputFolder:\t" + inputFolder);
-		System.out.println("outputFolder:\t" + outputFolder);
-		System.out.println("tmpFolder:\t" + tmpFolder);
-		System.out.println("ignoreList:\t" + ignoreList);
-		System.out.println("numTasks:\t" + numTasks);
-		System.out.println("numThreads:\t" + numThreads);
-		System.out.println("driverMemGB:\t" + driverMemGB);
-		System.out.println("doIndelRealignment:\t" + performIndelRealignment);
-		System.out.println("doPrintReads:\t" + performPrintReads);
+		System.out.println("Use exome = |" + useExome() + "|");
+		System.out.println("refPath:\t|" + refPath + "|");
+		System.out.println("inputFolder:\t|" + inputFolder + "|");
+		System.out.println("outputFolder:\t|" + outputFolder + "|");
+		System.out.println("tmpFolder:\t|" + tmpFolder + "|");
+		System.out.println("sfFolder:\t|" + sfFolder + "|");
+		System.out.println("ignoreList:\t|" + ignoreList + "|");
+		System.out.println("numTasks:\t|" + numTasks + "|");
+		System.out.println("numThreads:\t|" + numThreads + "|");
+		System.out.println("driverMemGB:\t|" + driverMemGB + "|");
+		System.out.println("doIndelRealignment:\t|" + performIndelRealignment + "|");
+		System.out.println("doPrintReads:\t|" + performPrintReads + "|");
 		for (String key : chrNameMap.keySet()) {
 			System.out.println("\tChromosome " + key + " -> " + chrNameMap.get(key)); 
 		}

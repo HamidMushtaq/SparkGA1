@@ -54,7 +54,7 @@ def getNumOfLocalChunks():
 	files = glob.glob(inputFolder + "/*.gz")
 	return float(len(files))
 
-def executeHadoop(part, ni, em, extra_param):	
+def executeHadoop(part, ni, em):	
 	dictHDFSPath = refPath.replace(".fasta", ".dict")
 	dictPath = './' + dictHDFSPath[dictHDFSPath.rfind('/') + 1:]
 			
@@ -70,20 +70,17 @@ def executeHadoop(part, ni, em, extra_param):
 	"--files " + configFilePath + "," + dictPath + "," + toolsStr + " " + \
 	"--driver-memory " + driver_mem + " --executor-memory " + em + " " + \
 	"--num-executors " + ni + " --executor-cores " + numTasks + " " + \
-	exeName + " " + configFilePath + " " + str(part) + extra_param
+	exeName + " " + configFilePath + " " + str(part)
 	
 	print cmdStr
 	addToLog("[" + time.ctime() + "] " + cmdStr)
 	os.system(cmdStr)
 	
-def executeLocal(part, extra_param):
-	if not os.path.exists(tmpFolder):
-		os.makedirs(tmpFolder)
-			
+def executeLocal(part):
 	cmdStr = "$SPARK_HOME/bin/spark-submit " + \
 	"--jars lib/htsjdk-1.143.jar " + \
 	"--class \"hmushtaq.sparkga1.SparkGA1\" --master local[" + numTasks + "] --driver-memory " + driver_mem + " " + exeName + " " + \
-	configFilePath + " " + str(part) + extra_param
+	configFilePath + " " + str(part)
 	
 	print cmdStr
 	addToLog("[" + time.ctime() + "] " + cmdStr)   
@@ -103,7 +100,7 @@ def runHadoopMode(part):
 			os.system("hadoop fs -get " + dictHDFSPath)
 		os.system("hadoop fs -rm -r -f " + outputFolder)
 	
-	executeHadoop(part, numInstances, exe_mem, "")
+	executeHadoop(part, numInstances, exe_mem)
 	addToLog("[" + time.ctime() + "] Part" + str(part) + " completed.")
 	
 def runLocalMode(part):
@@ -112,11 +109,17 @@ def runLocalMode(part):
 		if os.path.isdir(outputFolder):
 			os.system("rm -r -f " + outputFolder)
 		os.system("mkdir " + outputFolder)
+		if os.path.isdir(tmpFolder):
+			os.system("rm -r -f " + tmpFolder)
+		os.system("mkdir " + tmpFolder)
 		
-	executeLocal(part, "")
+	executeLocal(part)
 	addToLog("[" + time.ctime() + "] Part" + str(part) + " completed.")
 	if part == 3:
-		os.system('mv ' + tmpFolder + '/*.vcf ' + outputFolder)
+		if not os.path.exists(outputFolder + '/vcfs'):
+			os.makedirs(outputFolder + '/vcfs')
+		os.system('mv ' + tmpFolder + '/sparkCombined.vcf ' + outputFolder)
+		os.system('mv ' + tmpFolder + '/*.vcf ' + outputFolder + '/vcfs')
 	
 start_time = time.time()
 

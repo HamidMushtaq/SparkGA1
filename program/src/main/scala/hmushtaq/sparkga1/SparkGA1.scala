@@ -78,7 +78,7 @@ object SparkGA1
 			LogWriter.dbgLog("bwa/" + x, "0a\tDownloading from the HDFS", config)
 			hdfsManager.download(x + ".gz", config.getInputFolder, tmpDir, false)
 			input_file = tmpDir + x + ".gz"
-			if (downloadRef)
+			if (downloadRef && (config.getMode != "local"))
 			{
 				LogWriter.dbgLog("bwa/" + x, "*\tDownloading reference files for bwa if required.", config)
 				FileManager.downloadBWAFiles("bwa/" + x, config)
@@ -210,13 +210,13 @@ object SparkGA1
 	}
 		
 	def makeBAMFiles(chrRegion: (Integer, Integer), files: Array[(String, Long, Int, Int, String)], avgReadsPerRegion: Long, config: Configuration) : 
-		((Integer, Integer), Array[(String, Long)]) = 
+		((Integer, Integer), Int) = 
 	{
 		val chr = chrRegion._1
 		val reg = chrRegion._2
 		val reads = files.map(x => x._2).reduce(_+_)
 		var segments = (reads.toFloat * config.getRegionsFactor.toFloat / avgReadsPerRegion).round.toInt
-		val retArray = ArrayBuffer.empty[(String, Long)]
+		var retSegments = 1
 		val minPos = files.map(x => x._3).reduceLeft(_ min _)
 		val maxPos = files.map(x => x._4).reduceLeft(_ max _)
 		val posRange = maxPos - minPos
@@ -224,7 +224,7 @@ object SparkGA1
 		val nThreads = config.getNumThreads.toInt
 		val hdfsManager = new HDFSManager
 		
-		if (config.getMode() != "local")
+		if (config.getMode != "local")
 		{
 			if (segments > 1)
 				hdfsManager.create(config.getOutputFolder + "log/lb2/" + chr + "_" + reg)
@@ -328,7 +328,7 @@ object SparkGA1
 			val fileInfo = file._1.split(',')
 			
 			if (segments > 1)	// For a region with more than one segment
-				retArray.append((file._1, segments))
+				retSegments = segments
 			else 
 			{	
 				//val content = FileManager.readWholeFile(config.getOutputFolder + "samChunks/" + fileInfo(0), config).slice(fileInfo(1).toInt, fileInfo(2).toInt)
@@ -492,7 +492,7 @@ object SparkGA1
 			LogWriter.dbgLog("lb2/" + chr + "_" + reg, "5\tDone writing contents of all sam files.", config)
 		}
 		
-		return ((chr, reg), retArray.toArray)
+		return ((chr, reg), retSegments)
 	}
 
 	def binarySearch(arr: Array[Int], starti: Int, endi: Int, x: Int) : Int =
@@ -713,6 +713,8 @@ object SparkGA1
 			hdfsManager.download(chrRegion + ".bed", config.getOutputFolder + "bed/", config.getTmpFolder, false)
 			LogWriter.dbgLog("vcf/region_" + chrRegion, "2h\tCompleted download of bam and bed to the local directory!", config)
 		}
+		else
+			FileManager.makeDirIfRequired(config.getOutputFolder + "log/vcf", config)
 		
 		var f = new File(tmpFileBase + "-p1.bam");
 		if(f.exists() && !f.isDirectory()) 
@@ -728,14 +730,14 @@ object SparkGA1
 		
 		LogWriter.dbgLog("vcf/region_" + chrRegion, "3\tPicard processing started", config)
 		var cmdRes = picardPreprocess(tmpFileBase, config)
-		if (downloadRef)
+		if (downloadRef && (config.getMode != "local"))
 		{
 			LogWriter.dbgLog("vcf/region_" + chrRegion, "*\tDownloading VCF ref files", config)
 			FileManager.downloadVCFRefFiles("vcf/region_" + chrRegion, config)
 		}
 		if (config.doIndelRealignment)
 			cmdRes += indelRealignment(tmpFileBase, chrRegion, config)
-		if (downloadRef)
+		if (downloadRef && (config.getMode != "local"))
 		{
 			LogWriter.dbgLog("vcf/region_" + chrRegion, "*\tDownloading snp file", config)
 			FileManager.downloadVCFSnpFile("vcf/region_" + chrRegion, config)
@@ -1030,7 +1032,6 @@ object SparkGA1
 				s.add((e(0).toInt, e(1).toInt))
 			}
 			
-			// Hamid
 			LogWriter.statusLog("Input Size: ", input.size.toString, config)
 			
 			val inputArray = input.toArray
@@ -1038,17 +1039,14 @@ object SparkGA1
 			val inputData = sc.parallelize(inputArray, s.size)
 			inputData.cache()
 			val totalReads = inputData.map(x => x._2._2).reduce(_+_)
-			// Hamid
 			LogWriter.statusLog("Total Reads: ", totalReads.toString, config)
 			// <(chr, reg), Array((fname, numOfReads, minPos, maxPos))>
 			val chrReg = inputData.groupByKey
 			chrReg.cache()
 			chrReg.setName("rdd_chrReg")
 			val avgReadsPerRegion = totalReads / chrReg.count
-			// Hamid
 			LogWriter.statusLog("chrReg: ", "Chr regions:" + chrReg.count + ", Total reads: " + avgReadsPerRegion, config)
-			// Previously
-			// <(chr, reg), (fname, segments)>
+			// <(chr, reg), segments>
 			val loadBalRegions = 
 			{
 				if (!sizeBasedLBScheduling)
@@ -1062,23 +1060,25 @@ object SparkGA1
 			loadBalRegions.setName("rdd_loadBalRegions")
 			//////////////////////////////////////////////////////////////////////
 			val x = loadBalRegions.collect
-			var regions1Str = new StringBuilder
 			var segmentsStr = new StringBuilder
+			var singleSegmentStr = new StringBuilder
+			var totalRegions = 0
 			for(e <- x)
 			{
 				val chr = e._1._1
 				val reg = e._1._2
-				val filesAndSegments = e._2
+				val segments = e._2
 				
-				if (!filesAndSegments.isEmpty)
-				{
-					segmentsStr.append(chr + "\t" + reg + "\t" + filesAndSegments(0)._2 + "\n")
-					for (fs <- filesAndSegments)
-						regions1Str.append(chr + "\t" + reg + "\t" + fs._1 + "\t" + fs._2 + "\n")
-				}
+				totalRegions += segments
+				
+				if (segments > 1)
+					segmentsStr.append(chr + "\t" + reg + "\t" + segments + "\n")
+				else
+					singleSegmentStr.append(chr + "\t" + reg + "\t" + segments + "\n")
 			}
 			
-			FileManager.writeWholeFile(config.getOutputFolder + "log/segments.txt", segmentsStr.toString, config)
+			FileManager.writeWholeFile(config.getOutputFolder + "log/regions.txt", segmentsStr.toString + "=================================\n" + 
+				singleSegmentStr + "=================================\nTotal number of regions = " + totalRegions, config)
 		}
 		else // (part == 3)
 		{

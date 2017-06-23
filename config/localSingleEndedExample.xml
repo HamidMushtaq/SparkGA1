@@ -1,0 +1,34 @@
+<configuration>
+	<!-- options for mode: yarn-client, yarn-cluster or local -->
+	<mode>local</mode>
+	<refPath>/home/hamidmushtaq/gatk_hamid/B37ref/human_g1k_v37_decoy.fasta</refPath>
+	<snpPath>/home/hamidmushtaq/gatk_hamid/B37ref/dbsnp_138.b37.vcf</snpPath>
+	<exomePath>/home/hamidmushtaq/gatk_hamid/B37ref/Broad.human.exome.b37.interval_list</exomePath>
+	<inputFolder>/home/hamidmushtaq/gatk_hamid/B37_chunks72</inputFolder>
+	<outputFolder>outputb4</outputFolder> 
+	<toolsFolder>tools</toolsFolder>
+	<tmpFolder>/tmp/spark</tmpFolder>
+	<rgString>@RG\tID:sample_lane\tSM:sample\tPL:illumina\tLB:sample\tPU:lane</rgString>
+	<extraBWAParams></extraBWAParams>
+	<numRegions>144</numRegions>
+	<regionsFactor>2</regionsFactor>
+	<!-- ===================== -->
+	<!-- parameters for part 1 --> 						
+	<driverMemGB1>112</driverMemGB1> 					 	
+	<numThreads1>8</numThreads1>
+	<numTasks1>8</numTasks1>
+	<!-- parameters for part 2 --> 						
+	<driverMemGB2>112</driverMemGB2> 					 	
+	<numThreads2>8</numThreads2>
+	<numTasks2>4</numTasks2>
+	<!-- parameters for part 3 -->
+	<vcMemGB>5</vcMemGB> 						
+	<driverMemGB3>112</driverMemGB3> 					 	
+	<numThreads3>8</numThreads3>
+	<numTasks3>20</numTasks3>
+	<!-- ===================== -->
+	<standEC>10</standEC>
+	<standCC>30</standCC>
+	<doIndelRealignment>false</doIndelRealignment>
+	<doPrintReads>false</doPrintReads>
+</configuration>

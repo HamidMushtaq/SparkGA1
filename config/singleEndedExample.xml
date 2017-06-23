@@ -1,8 +1,8 @@
 <configuration>
 	<!-- options for mode: yarn-client, yarn-cluster or local -->
 	<mode>yarn-cluster</mode>
-	<refPath>human_g1k_v37_decoy.fasta</refPath>
-	<snpPath>dbsnp_138.b37.vcf</snpPath>
+	<refPath>filesB37/human_g1k_v37_decoy.fasta</refPath>
+	<snpPath>filesB37/dbsnp_138.b37.vcf</snpPath>
 	<indelPath></indelPath>
 	<exomePath></exomePath>
 	<inputFolder>ibm_chunks</inputFolder>
@@ -20,20 +20,20 @@
 	<!-- parameters for part 1 -->
 	<execMemGB1>48</execMemGB1> 						
 	<driverMemGB1>2</driverMemGB1> 					
-	<numInstances1>73</numInstances1> 	
+	<numInstances1>72</numInstances1> 	
 	<numThreads1>4</numThreads1>
 	<numTasks1>4</numTasks1>
 	<!-- parameters for part 2 -->
 	<execMemGB2>48</execMemGB2> 						
 	<driverMemGB2>2</driverMemGB2> 					
-	<numInstances2>73</numInstances2> 	
+	<numInstances2>72</numInstances2> 	
 	<numThreads2>8</numThreads2>
 	<numTasks2>1</numTasks2>
 	<!-- parameters for part 3 -->
 	<execMemGB3>46</execMemGB3>
 	<vcMemGB>5</vcMemGB> 						
 	<driverMemGB3>4</driverMemGB3> 					
-	<numInstances3>73</numInstances3> 	
+	<numInstances3>72</numInstances3> 	
 	<numThreads3>1</numThreads3>
 	<numTasks3>8</numTasks3>
 	<!-- ===================== -->
