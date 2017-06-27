@@ -970,18 +970,21 @@ object SparkGA1
 		{
 			override def onStageCompleted(stageCompleted: SparkListenerStageCompleted) 
 			{
-				val map = stageCompleted.stageInfo.rddInfos
-				map.foreach(row => {
-					if (row.isCached)
-					{	
-						LogWriter.statusLog("SparkListener:", row.name + ": memSize = " + (row.memSize / (1024*1024)) + 
-								"MB, diskSize " + row.diskSize + ", numPartitions = " + row.numPartitions + "-" + row.numCachedPartitions, config)
-					}
-					else if (row.name.contains("rdd_"))
-					{
-						LogWriter.statusLog("SparkListener:", row.name + " processed!", config)
-					}
-				})
+				hdfsManager.synchronized
+				{
+					val map = stageCompleted.stageInfo.rddInfos
+					map.foreach(row => {
+						if (row.isCached)
+						{	
+							LogWriter.statusLog("SparkListener:", row.name + ": memSize = " + (row.memSize / (1024*1024)) + 
+									"MB, diskSize " + row.diskSize + ", numPartitions = " + row.numPartitions + "-" + row.numCachedPartitions, config)
+						}
+						else if (row.name.contains("rdd_"))
+						{
+							LogWriter.statusLog("SparkListener:", row.name + " processed!", config)
+						}
+					})
+				}
 			}
 		});
 		//////////////////////////////////////////////////////////////////////////
