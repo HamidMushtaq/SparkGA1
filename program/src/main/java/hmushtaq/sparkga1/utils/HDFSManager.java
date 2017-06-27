@@ -260,24 +260,21 @@ public class HDFSManager
 		{	
 			File f = new File(localFolder + fileName);
 			if (!f.exists())
-			{
 				fs.copyToLocalFile(new Path(hdfsFolder + fileName), new Path(localFolder + fileName));
-			}
 			else
 			{
 				// Some other thread is already copying this file.
-				volatile long a;
-				a = f.length();
-				while(a != getFileSize(hdfsFolder + fileName))
+				long fileLen = f.length();
+				while(fileLen != getFileSize(hdfsFolder + fileName))
 				{
 					Thread.sleep(1000);
-					a = f.length();
+					fileLen = f.length();
 				}
 			}
 			
 			return 1;
 		}
-		catch (IOException ex) 
+		catch (Exception ex) 
 		{
 			ex.printStackTrace();
 			return 0;

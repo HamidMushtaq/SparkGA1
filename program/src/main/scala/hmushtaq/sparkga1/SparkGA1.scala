@@ -735,13 +735,13 @@ object SparkGA1
 			FileManager.downloadVCFRefFiles("vcf/region_" + chrRegion, config)
 		}
 		var cmdRes = picardPreprocess(tmpFileBase, config)
-		if (config.doIndelRealignment)
-			cmdRes += indelRealignment(tmpFileBase, chrRegion, config)
 		if (downloadRef && (config.getMode != "local"))
 		{
 			LogWriter.dbgLog("vcf/region_" + chrRegion, "*\tDownloading VCF index files", config)
 			FileManager.downloadVCFIndexFiles("vcf/region_" + chrRegion, config)
 		}
+		if (config.doIndelRealignment)
+			cmdRes += indelRealignment(tmpFileBase, chrRegion, config)
 		cmdRes += baseQualityScoreRecalibration(tmpFileBase, chrRegion, config)
 		cmdRes += DnaVariantCalling(tmpFileBase, chrRegion, config)
 		
