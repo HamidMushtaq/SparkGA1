@@ -58,8 +58,6 @@ object SparkGA1
 	// Scheduling
 	final val sizeBasedLBScheduling = true
 	final val sizeBasedVCScheduling = true
-	//
-	final val downloadRef = false // Keep this false until the downloading part is implemented properly.
 	//////////////////////////////////////////////////////////////////////////////
 	def bwaRun(x: String, config: Configuration) : (Array[((Integer, Integer), (String, Long, Int, Int, String))]) = 
 	{
@@ -67,6 +65,7 @@ object SparkGA1
 		var input_file = ""
 		val tmpDir = config.getTmpFolder
 		val hdfsManager = new HDFSManager
+		val downloadRef = config.getSfFolder == "./"
 		
 		if (config.getMode != "local")
 		{
@@ -700,6 +699,7 @@ object SparkGA1
 	{
 		val tmpFileBase = config.getTmpFolder + chrRegion
 		val hdfsManager = new HDFSManager
+		val downloadRef = config.getSfFolder == "./"
 		
 		if (config.getMode != "local")
 		{
@@ -729,18 +729,18 @@ object SparkGA1
 			LogWriter.dbgLog("vcf/region_" + chrRegion, "#-\tbed file does not exist in the tmp directory!!", config)
 		
 		LogWriter.dbgLog("vcf/region_" + chrRegion, "3\tPicard processing started", config)
-		var cmdRes = picardPreprocess(tmpFileBase, config)
 		if (downloadRef && (config.getMode != "local"))
 		{
 			LogWriter.dbgLog("vcf/region_" + chrRegion, "*\tDownloading VCF ref files", config)
 			FileManager.downloadVCFRefFiles("vcf/region_" + chrRegion, config)
 		}
+		var cmdRes = picardPreprocess(tmpFileBase, config)
 		if (config.doIndelRealignment)
 			cmdRes += indelRealignment(tmpFileBase, chrRegion, config)
 		if (downloadRef && (config.getMode != "local"))
 		{
-			LogWriter.dbgLog("vcf/region_" + chrRegion, "*\tDownloading snp file", config)
-			FileManager.downloadVCFSnpFile("vcf/region_" + chrRegion, config)
+			LogWriter.dbgLog("vcf/region_" + chrRegion, "*\tDownloading VCF index files", config)
+			FileManager.downloadVCFIndexFiles("vcf/region_" + chrRegion, config)
 		}
 		cmdRes += baseQualityScoreRecalibration(tmpFileBase, chrRegion, config)
 		cmdRes += DnaVariantCalling(tmpFileBase, chrRegion, config)

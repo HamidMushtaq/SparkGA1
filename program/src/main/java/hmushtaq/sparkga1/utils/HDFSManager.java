@@ -265,11 +265,14 @@ public class HDFSManager
 			}
 			else
 			{
-				long localFileSize = f.length();
-				long hdfsFileSize = fs.getFileStatus(new Path(hdfsFolder + fileName)).getLen();
-				
-				if (localFileSize != hdfsFileSize)
-					fs.copyToLocalFile(new Path(hdfsFolder + fileName), new Path(localFolder + fileName));
+				// Some other thread is already copying this file.
+				volatile long a;
+				a = f.length();
+				while(a != getFileSize(hdfsFolder + fileName))
+				{
+					Thread.sleep(1000);
+					a = f.length();
+				}
 			}
 			
 			return 1;

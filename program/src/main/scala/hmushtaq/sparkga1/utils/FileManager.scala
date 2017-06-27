@@ -191,22 +191,31 @@ object FileManager
 		hdfsManager.downloadIfRequired(refFileName.replace(".fasta", ".dict"), refFolder, config.getSfFolder)
 		hdfsManager.downloadIfRequired(refFileName + ".fai", refFolder, config.getSfFolder)
 		
+		val snpFolder = getDirFromPath(config.getSnpPath)
+		val snpFileName = getFileNameFromPath(config.getSnpPath)
+		hdfsManager.downloadIfRequired(snpFileName, snpFolder, config.getSfFolder)
+		
 		if (config.useKnownIndels)
 		{
 			val indelFolder = getDirFromPath(config.getIndelPath())
 			val indelFileName = getFileNameFromPath(config.getIndelPath())
 			hdfsManager.downloadIfRequired(indelFileName, indelFolder, config.getSfFolder())
-			hdfsManager.download(indelFileName + ".idx", indelFolder, config.getSfFolder, true)
 		}
 	}
 
-	def downloadVCFSnpFile(x: String, config: Configuration)
+	def downloadVCFIndexFiles(x: String, config: Configuration)
 	{
-		val snpFolder = getDirFromPath(config.getSnpPath)
-		val snpFileName = getFileNameFromPath(config.getSnpPath)
 		val hdfsManager = new HDFSManager
 		
-		hdfsManager.downloadIfRequired(snpFileName, snpFolder, config.getSfFolder);
-		hdfsManager.download(snpFileName + ".idx", snpFolder, config.getSfFolder, true)	
+		val snpFolder = getDirFromPath(config.getSnpPath)
+		val snpFileName = getFileNameFromPath(config.getSnpPath)
+		hdfsManager.downloadIfRequired(snpFileName + ".idx", snpFolder, config.getSfFolder)
+		
+		if (config.useKnownIndels)
+		{
+			val indelFolder = getDirFromPath(config.getIndelPath())
+			val indelFileName = getFileNameFromPath(config.getIndelPath())
+			hdfsManager.downloadIfRequired(indelFileName + ".idx", indelFolder, config.getSfFolder)
+		}	
 	}
 }
