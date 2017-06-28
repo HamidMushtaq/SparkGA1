@@ -23,7 +23,7 @@ configFilePath = sys.argv[1]
 partNumber = sys.argv[2]
 
 if not os.path.isfile(configFilePath):
-	print("Config file " + configFilePath + " does not exist!")
+	print("Config file " + configFilePath + " doesn't exist!")
 	sys.exit(1)
 
 doc = minidom.parse(configFilePath)
