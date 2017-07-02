@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #****************************************/
-#	Script:		run.py	
+#	Script:		runChunker.py	
 #	Author:		Hamid Mushtaq  		
 #	Company:	TU Delft	 	
 #****************************************/
@@ -8,8 +8,6 @@ from xml.dom import minidom
 import sys
 import os
 import time
-
-SAVE_EXEC_TIME = True
 
 if len(sys.argv) < 2:
 	print("Not enough arguments!")
@@ -39,13 +37,4 @@ run()
 time_in_secs = int(time.time() - start_time)
 mins = time_in_secs / 60
 secs = time_in_secs % 60
-print "||| Time taken = " + str(mins) + " mins " + str(secs) + " secs |||"
-if SAVE_EXEC_TIME:
-	timingsFileName = "timings.txt"
-	if not os.path.exists(timingsFileName):
-		f = open(timingsFileName,'w')
-		f.write("%Config file\tTime in secs\tTime in mins:secs\n\n")
-		f.close
-	f = open(timingsFileName,'a+')
-	f.write(sys.argv[2] + "\t" + str(time_in_secs) + "\t" + str(mins) + ":" + str(secs) + "\n")
-	f.close() 
+print "||| Time taken for chunker = " + str(mins) + " mins " + str(secs) + " secs |||"
