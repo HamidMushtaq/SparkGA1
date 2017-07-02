@@ -11,6 +11,8 @@ import time
 import subprocess
 import math
 import glob
+import subprocess
+import multiprocessing
 
 if len(sys.argv) < 3:
 	print("Not enough arguments!")
@@ -18,6 +20,7 @@ if len(sys.argv) < 3:
 	sys.exit(1)
 
 exeName = "program/sparkga1_2.11-1.0.jar"
+chunkerExeName = "chunker/chunker_2.11-1.0.jar"
 logFile = "time.txt"
 configFilePath = sys.argv[1]
 partNumber = sys.argv[2]
@@ -39,6 +42,21 @@ if mode != 'local':
 	numInstances = doc.getElementsByTagName("numInstances" + partNumber)[0].firstChild.data
 	exe_mem = doc.getElementsByTagName("execMemGB" + partNumber)[0].firstChild.data + "g"
 driver_mem = doc.getElementsByTagName("driverMemGB" + partNumber)[0].firstChild.data + "g"
+
+streamingBWA = False
+if int(partNumber) == 1:
+	chunkerConfigFilePathTag = doc.getElementsByTagName("chunkerConfigFilePath")
+	if chunkerConfigFilePathTag != []:
+		chunkerConfigFilePathTagEntry = chunkerConfigFilePathTag[0].firstChild
+		chunkerConfigFilePath = "" if (chunkerConfigFilePathTagEntry == None) else chunkerConfigFilePathTagEntry.data
+		if chunkerConfigFilePath != "":
+			streamingBWA = True
+			doc = minidom.parse(chunkerConfigFilePath)
+			inputFileName = doc.getElementsByTagName("fastq1Path")[0].firstChild.data
+			fastq2Path = doc.getElementsByTagName("fastq2Path")[0].firstChild
+			inputFileName2 = "" if (fastq2Path == None) else fastq2Path.data
+			outputFolderChunker = doc.getElementsByTagName("outputFolder")[0].firstChild.data
+			driver_mem_chunker = doc.getElementsByTagName("driverMemGB")[0].firstChild.data + "g"
 
 print "mode = [" + mode + "]"
 
@@ -98,7 +116,7 @@ def runHadoopMode(part):
 		dictPath = './' + dictHDFSPath[dictHDFSPath.rfind('/') + 1:]
 		if not os.path.exists(dictPath):
 			os.system("hadoop fs -get " + dictHDFSPath)
-		os.system("hadoop fs -rm -r -f " + outputFolder)
+		os.system("hadoop fs -rm -r -skipTrash " + outputFolder)
 	
 	executeHadoop(part, numInstances, exe_mem)
 	addToLog("[" + time.ctime() + "] Part" + str(part) + " completed.")
@@ -123,10 +141,31 @@ def runLocalMode(part):
 	
 start_time = time.time()
 
-if (mode == "local"):
-	runLocalMode(int(partNumber))
+def executeChunker():
+	cmdStr = "$SPARK_HOME/bin/spark-submit " + \
+	"--class \"hmushtaq.fastqchunker.Chunker\" --master local[*] --driver-memory " + driver_mem_chunker + " " + chunkerExeName + " " + chunkerConfigFilePath
+	
+	print cmdStr
+	os.system(cmdStr)
+
+def executeSparkGA():
+	if (mode == "local"):
+		runLocalMode(int(partNumber))
+	else:
+		runHadoopMode(int(partNumber))
+
+if streamingBWA:
+	# Start chunker
+	job1 = multiprocessing.Process(target=executeChunker)
+	job1.start()
+	# Start streamBWA
+	job2 = multiprocessing.Process(target=executeSparkGA)
+	job2.start()
+	# Wait for both jobs to finish
+	job1.join()
+	job2.join()
 else:
-	runHadoopMode(int(partNumber))
+	executeSparkGA()
 	
 time_in_secs = int(time.time() - start_time)
 mins = time_in_secs / 60

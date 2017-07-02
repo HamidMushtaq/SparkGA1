@@ -59,6 +59,9 @@ public class Configuration implements Serializable
 	private Long startTime;
 	private String driverMemGB;
 	private String vcMemGB;
+	private String chunkerConfigFilePath;
+	private String chunkerGroupSize;
+	private boolean streamingBWA;
 	private boolean performIndelRealignment;
 	private boolean performPrintReads;
 	private ArrayList<Integer> chrLenArray;
@@ -115,9 +118,14 @@ public class Configuration implements Serializable
 			sec	= document.getElementsByTagName("standEC").item(0).getTextContent();
 			sec	= document.getElementsByTagName("standEC").item(0).getTextContent();
 			
-			// Optional parameters
 			performIndelRealignment = trueIfTagDoesntExist(document, "doIndelRealignment");
 			performPrintReads = trueIfTagDoesntExist(document, "doPrintReads");
+			chunkerConfigFilePath = emptyIfTagDoesntExist(document, "chunkerConfigFilePath");
+			chunkerGroupSize = emptyIfTagDoesntExist(document, "chunkerGroupSize");
+			
+			streamingBWA = false;
+			if (!chunkerConfigFilePath.equals(""))
+				streamingBWA = true;
 			
 			if ( (!mode.equals("local")) && (!mode.equals("yarn-client")) && (!mode.equals("yarn-cluster")) )
 				throw new IllegalArgumentException("Unrecognized mode type (" + mode + "). It should be either local, yarn-client or yarn-cluster.");
@@ -341,6 +349,11 @@ public class Configuration implements Serializable
 		return "-Xmx" + execValue.toString() + "m";
 	}
 	
+	public String getChunkerGroupSize()
+	{
+		return chunkerGroupSize;
+	}
+	
 	public boolean useExome()
 	{
 		return !exomePath.trim().equals("");
@@ -359,6 +372,11 @@ public class Configuration implements Serializable
 	public boolean doPrintReads()
 	{
 		return performPrintReads;
+	}
+	
+	public boolean doStreamingBWA()
+	{
+		return streamingBWA;
 	}
 	
 	public int getChrIndex(String chrName)
@@ -385,6 +403,8 @@ public class Configuration implements Serializable
 		System.out.println("numTasks:\t|" + numTasks + "|");
 		System.out.println("numThreads:\t|" + numThreads + "|");
 		System.out.println("driverMemGB:\t|" + driverMemGB + "|");
+		System.out.println("streamingBWA:\t|" + streamingBWA + "|");
+		System.out.println("chunkerGroupSize:\t|" + chunkerGroupSize + "|");
 		System.out.println("doIndelRealignment:\t|" + performIndelRealignment + "|");
 		System.out.println("doPrintReads:\t|" + performPrintReads + "|");
 		for (String key : chrNameMap.keySet()) {

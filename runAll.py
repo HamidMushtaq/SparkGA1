@@ -33,9 +33,6 @@ def getElapsedStr(elapsed):
 times_list = []
 times_list.append(time.time())
 
-if startingPart == 1:
-	os.system("hadoop fs -rm -r -skipTrash " + outputFolder)
-
 iterations = 4 - startingPart
 for i in range(0, iterations):
 	part = str(i+startingPart)

@@ -4,7 +4,7 @@
 	<refPath>/home/hamidmushtaq/gatk_hamid/B37ref/human_g1k_v37_decoy.fasta</refPath>
 	<snpPath>/home/hamidmushtaq/gatk_hamid/B37ref/dbsnp_138.b37.vcf</snpPath>
 	<exomePath>/home/hamidmushtaq/gatk_hamid/B37ref/Broad.human.exome.b37.interval_list</exomePath>
-	<inputFolder>/home/hamidmushtaq/gatk_hamid/B37_chunks72</inputFolder>
+	<inputFolder>chunks</inputFolder>
 	<outputFolder>outputb4</outputFolder> 
 	<toolsFolder>tools</toolsFolder>
 	<tmpFolder>/tmp/spark</tmpFolder>
@@ -31,4 +31,7 @@
 	<standCC>30</standCC>
 	<doIndelRealignment>false</doIndelRealignment>
 	<doPrintReads>false</doPrintReads>
+	<!-- -==================== -->
+	<chunkerConfigFilePath>config/chunkerConfig/localSingleEndedExample.xml</chunkerConfigFilePath>
+	<chunkerGroupSize>256</chunkerGroupSize>
 </configuration>

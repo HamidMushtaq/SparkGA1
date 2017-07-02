@@ -1,0 +1,13 @@
+<configuration>
+	<fastq1Path>/home/hamidmushtaq/gatk_hamid/datasets/NA12878D_HiSeqX_R1.fq.gz</fastq1Path>
+	<!-- fastq2Path should be left empty (<fastq2Path></fastq2Path>) for a single ended input -->
+	<fastq2Path>/home/hamidmushtaq/gatk_hamid/datasets/NA12878D_HiSeqX_R2.fq.gz</fastq2Path>
+	<outputFolder>chunks</outputFolder> 
+	<compLevel>4</compLevel>
+	<chunkSizeMB>60</chunkSizeMB>
+	<blockSizeMB>8</blockSizeMB>
+	<driverMemGB>8</driverMemGB>
+	<numThreads>16</numThreads>
+	<!-- interleave field is ignored obviously for a single ended input -->
+	<interleave>true</interleave> 
+</configuration>

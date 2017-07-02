@@ -60,6 +60,17 @@ object FileManager
 				return null
 		}
 	}
+	
+	def exists(filePath: String, config: Configuration) : Boolean =
+	{
+		if (config.getMode == "local")
+			return new File(filePath).exists
+		else
+		{
+			val hdfsManager = new HDFSManager
+			return hdfsManager.exists(filePath)
+		}
+	}
 
 	def getFileNameFromPath(path: String) : String =
 	{

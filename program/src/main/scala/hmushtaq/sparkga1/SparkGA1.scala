@@ -91,7 +91,26 @@ object SparkGA1
 		
 		val file = new File(FileManager.getToolsDirPath(config) + "bwa") 
 		file.setExecutable(true)
-			
+		val res = ArrayBuffer.empty[((Integer, Integer), (String, Long, Int, Int, String))]
+		
+		if (config.doStreamingBWA)
+		{
+			val chunkNum = x.split('.')(0)
+			while(!FileManager.exists(config.getInputFolder + "ulStatus/" + chunkNum, config))
+			{
+				if (FileManager.exists(config.getInputFolder + "ulStatus/end.txt", config))
+				{
+					if (!FileManager.exists(config.getInputFolder + "ulStatus/" + chunkNum, config))
+					{
+						LogWriter.dbgLog("bwa/" + x, "#\tchunkNum = " + chunkNum + ", end.txt exists but this file doesn't!", config)
+						res.append(((-1, -1), ("", 0, 0, 0, "")))
+						return res.toArray
+					}
+				}
+				Thread.sleep(1000)
+			}
+		}
+	
 		// unzip the input .gz file
 		var fqFileName = tmpDir + x
 		val unzipStr = "gunzip -c " + input_file
@@ -118,7 +137,6 @@ object SparkGA1
 		command_str ! logger;
 		new File(fqFileName).delete()
 		
-		val res = ArrayBuffer.empty[((Integer, Integer), (String, Long, Int, Int, String))]
 		FileManager.makeDirIfRequired(config.getOutputFolder + "samChunks", config)
 		FileManager.makeDirIfRequired(config.getOutputFolder + "bwaPos", config)
 		
@@ -990,34 +1008,69 @@ object SparkGA1
 		//////////////////////////////////////////////////////////////////////////
 		if (part == 1)
 		{ 
-			val inputArray = FileManager.getInputFileNames(config.getInputFolder, config).filter(x => x.contains(".fq")).map(x => x.replace(".gz", ""))  
-			if (inputArray == null)
-			{
-				println("The input directory does not exist!")
-				System.exit(1)
-			}
-			scala.util.Sorting.quickSort(inputArray)
-			inputArray.foreach(println)
-		
-			// Give chunks to bwa instances
-			val inputData = sc.parallelize(inputArray, inputArray.size) 
-		
-			// Run instances of bwa and get the output as Key Value pairs
-			// <(chr, reg), fname>
-			val bwaOutput = inputData.flatMap(x => bwaRun(x, bcConfig.value))
-			bwaOutput.setName("rdd_bwaOutput")
 			var bwaOutStr = new StringBuilder
-			for(e <- bwaOutput.collect)
+			if (config.doStreamingBWA)
 			{
-				val chr = e._1._1
-				val reg = e._1._2
-				val fname = e._2._1
-				val reads = e._2._2
-				val minPos = e._2._3
-				val maxPos = e._2._4
-				val posFname = e._2._5
+				var done = false
+				val parTasks = config.getChunkerGroupSize.toInt
+				var si = 0
+				var ei = parTasks
+				while(!done)
+				{
+					var indexes = (si until ei).toArray  
+					val inputData = sc.parallelize(indexes, indexes.size)
+					val bwaOutput = inputData.flatMap(x => bwaRun(x + ".fq", bcConfig.value)).cache
+					for(e <- bwaOutput.collect)
+					{
+						val chr = e._1._1
+						if (chr == -1)
+							done = true
+						else
+						{
+							val reg = e._1._2
+							val fname = e._2._1
+							val reads = e._2._2
+							val minPos = e._2._3
+							val maxPos = e._2._4
+							val posFname = e._2._5
+						
+							bwaOutStr.append(chr + "\t" + reg + "\t" + fname + "\t" + reads + "\t" + minPos + "\t" + maxPos + "\t" + posFname + "\n")
+						}
+					}
+					si += parTasks
+					ei += parTasks
+				}
+			}
+		    else
+			{
+				val inputArray = FileManager.getInputFileNames(config.getInputFolder, config).filter(x => x.contains(".fq")).map(x => x.replace(".gz", ""))  
+				if (inputArray == null)
+				{
+					println("The input directory does not exist!")
+					System.exit(1)
+				}
+				scala.util.Sorting.quickSort(inputArray)
+				inputArray.foreach(println)
 			
-				bwaOutStr.append(chr + "\t" + reg + "\t" + fname + "\t" + reads + "\t" + minPos + "\t" + maxPos + "\t" + posFname + "\n")
+				// Give chunks to bwa instances
+				val inputData = sc.parallelize(inputArray, inputArray.size) 
+			
+				// Run instances of bwa and get the output as Key Value pairs
+				// <(chr, reg), fname>
+				val bwaOutput = inputData.flatMap(x => bwaRun(x, bcConfig.value))
+				bwaOutput.setName("rdd_bwaOutput")
+				for(e <- bwaOutput.collect)
+				{
+					val chr = e._1._1
+					val reg = e._1._2
+					val fname = e._2._1
+					val reads = e._2._2
+					val minPos = e._2._3
+					val maxPos = e._2._4
+					val posFname = e._2._5
+				
+					bwaOutStr.append(chr + "\t" + reg + "\t" + fname + "\t" + reads + "\t" + minPos + "\t" + maxPos + "\t" + posFname + "\n")
+				}
 			}
 			FileManager.makeDirIfRequired(config.getOutputFolder + "bwaOut", config)
 			FileManager.writeWholeFile(config.getOutputFolder + "bwaOut.txt", bwaOutStr.toString, config)
