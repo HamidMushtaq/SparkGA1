@@ -155,6 +155,11 @@ def executeSparkGA():
 		runHadoopMode(int(partNumber))
 
 if streamingBWA:
+	if (mode == "local"):
+		if os.path.isdir(inputFolder):
+			os.system("rm -r -f " + inputFolder)
+	else:
+		os.system("hadoop fs -rm -r -skipTrash " + inputFolder)
 	# Start chunker
 	job1 = multiprocessing.Process(target=executeChunker)
 	job1.start()
