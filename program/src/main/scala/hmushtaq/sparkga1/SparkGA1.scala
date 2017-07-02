@@ -74,9 +74,6 @@ object SparkGA1
 			if (!(new File(config.getTmpFolder).exists))
 				new File(config.getTmpFolder).mkdirs()
 			
-			LogWriter.dbgLog("bwa/" + x, "0a\tDownloading from the HDFS", config)
-			hdfsManager.download(x + ".gz", config.getInputFolder, tmpDir, false)
-			input_file = tmpDir + x + ".gz"
 			if (downloadRef && (config.getMode != "local"))
 			{
 				LogWriter.dbgLog("bwa/" + x, "*\tDownloading reference files for bwa if required.", config)
@@ -111,6 +108,13 @@ object SparkGA1
 			}
 		}
 	
+		if (config.getMode != "local")
+		{
+			LogWriter.dbgLog("bwa/" + x, "0a\tDownloading from the HDFS", config)
+			hdfsManager.download(x + ".gz", config.getInputFolder, tmpDir, false)
+			input_file = tmpDir + x + ".gz"
+		}
+		
 		// unzip the input .gz file
 		var fqFileName = tmpDir + x
 		val unzipStr = "gunzip -c " + input_file
