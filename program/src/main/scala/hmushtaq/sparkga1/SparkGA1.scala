@@ -971,7 +971,7 @@ object SparkGA1
 		else
 		{
 			conf.set("spark.shuffle.blockTransferService", "nio") 
-			//conf.set("spark.network.timeout", "12000")
+			conf.set("spark.network.timeout", "12000")
 		}
 	   
 		val bcConfig = sc.broadcast(config)
@@ -1117,6 +1117,7 @@ object SparkGA1
 					chrRegByReads.map(x => makeBAMFiles(x._1, x._2.toArray, avgReadsPerRegion, bcConfig.value))
 				}
 			}
+			loadBalRegions.cache
 			loadBalRegions.setName("rdd_loadBalRegions")
 			//////////////////////////////////////////////////////////////////////
 			val x = loadBalRegions.collect
