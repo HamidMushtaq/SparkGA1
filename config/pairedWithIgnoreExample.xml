@@ -3,7 +3,7 @@
 	<mode>yarn-client</mode>
 	<refPath>human_g1k_v37_decoy.fasta</refPath>
 	<snpPath>dbsnp_138.b37.vcf</snpPath>
-	<!--<indelFileName>1000G_phase1.indels.b37.vcf</indelFileName>-->
+	<!--<indelPath>1000G_phase1.indels.b37.vcf</indelPath>-->
 	<indelPath></indelPath>
 	<exomePath></exomePath>
 	<inputFolder>wg_chunks</inputFolder>
