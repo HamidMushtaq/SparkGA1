@@ -7,6 +7,17 @@ Al-Ars. 2017. SparkGA: A Spark Framework for Cost Effective, Fast and
 Accurate DNA Analysis at Scale. In Proceedings of ACM-BCB ’17, Boston,
 MA, USA, August 20-23, 2017.
 
+This README contains the following sections.
+1. **System requirements and Installation**
+2. **Compiling**
+3. **Files required**
+4. **Putting reference and index files on each node of the cluster**
+5. **Configuration files**
+	* **Configuration file for SparkGA**
+	* **Configuration file for the chunker utility**
+	* **Configuration file for the downloader utility**
+6. **Running SparkGA**
+
 ## System requirements and Installation
 For SparkGA, you must have the following software packages installed in your system/cluster. Note that SparkGA runs on a yarn cluster, so when running in cluster mode, the cluster should have been properly setup. Moreover, your system/cluster must be Linux-based.
 
@@ -20,15 +31,18 @@ Note that your Spark version should match the hadoop version. For example, if yo
 
 This of course assumes that you have an environment variable $HADOOP_INSTALL that points to the hadoop's home directory.
 
+## Compiling
+For compiling, go the the program folder and type `sbt package`. Likewise, for compiling the filesDownloader utility, go the filesDownloader folder and type `sbt package`. The code for the chunker utility can be found at https://github.com/HamidMushtaq/FastqChunker, but a compiled jar file is also placed in the chunker folder here.
+
 ## Files required
 
 Before you run SparkGA, make sure you have the following files available.
 
-1. The input xml file which contains configuration parameters for running SparkGA. Each tag for that xml file is explained in Section **Configuration files**.
+1. The input xml file which contains configuration parameters for running SparkGA. Each tag for that xml file is explained in Section **Configuration file for SparkGA**.
 
 2. All the reference and index files. This means files such as the fasta, bwt, dict and known snp vcf files etc. These are the same files that are required for the classical GATK pipeline from broad. These files are required to be available in a folder or in the HDFS, depending upon whether you are running SparkGA in local or cluster (yarn-client or yarn-cluster) mode. For cluster mode, you can put these files on the local directories of each node in three different ways. This is explained later in this document in Section **Putting reference and index files on each node of the cluster**. Note that the .dict file should also be present in SparkGA'S main folder. 
 
-3. The input fastq files, either in compressed (gzipped) or uncompressed form. For a single-ended input, only one fastq file is requied, while for pair-ended input, two files are required. The chunker program can be used to make chunks or interleaved chunks (for paired-ended input) from the input files. However, this chunking can be done in parallel with the execution of SparkGA, by simply adding two extra parameters in the input xml file. More on this is described later in this document. When chunking is done in parallel, SparkGA will start execution as soon as the first chunks are made available by the chunker program. In this way, the chunker program could be uploading the chunks on the fly.
+3. The input FASTQ files, either in compressed (gzipped) or uncompressed form. For a single-ended input, only one FASTQ file is requied, while for pair-ended input, two files are required. The chunker program can be used to make chunks or interleaved chunks (for paired-ended input) from the input files. However, this chunking can be done in parallel with the execution of SparkGA, by simply adding two extra parameters in the input xml file. More on this is described later in this document. When chunking is done in parallel, SparkGA will start execution as soon as the first chunks are made available by the chunker program. In this way, the chunker program could be uploading the chunks on the fly.
 
 4. All the tools in one directory. This path of this directory is specified as the value of ```toolsFolder``` in the input xml file. The following tools should be in the ```toolsFolder``` directory.
 	* bwa 0.7.x
@@ -40,26 +54,36 @@ Before you run SparkGA, make sure you have the following files available.
 
 6. In SparkGA's main folder, you must have the main program ```sparkga1_2.11-1.0.jar``` in a folder named ```program```.
 
-7. The chunker program ```chunker_2.11-1.0.jar``` should be in the folder ```chunker``` inside the SparkGA's main folder. If you want to make chunkers separately (not on the fly), you must use the the python script ```runChunker.py``` in SparkGA's main folder. In either case, you also need a separate xml configuration file for the chunker program. Each tag for such xml file is explained in Section **Configuration files**.
+7. The chunker program ```chunker_2.11-1.0.jar``` should be in the folder ```chunker``` inside the SparkGA's main folder. If you want to make chunkers separately (not on the fly), you must use the the python script ```runChunker.py``` in SparkGA's main folder. In either case, you also need a separate xml configuration file for the chunker program. Each tag for such xml file is explained in Section **Configuration file for the chunker utility**.
 
-8. If you are using the downloader utility (More on the downloader utility later in the text), you must have the downloader program ```filesdownloader_2.11-1.0.jar``` in the folder ```filesDownloader```. To run the downloader utility, you must use the python script ```runDownloader.py``` in SparkGA's main folder. Like SparkGA's main program and the chunker utility, the downloader utility requires an input xml file, which is explained in Section **Configuration files**.
+8. If you are using the downloader utility (More on the downloader utility later in the text), you must have the downloader program ```filesdownloader_2.11-1.0.jar``` in the folder ```filesDownloader```. To run the downloader utility, you must use the python script ```runDownloader.py``` in SparkGA's main folder. Like SparkGA's main program and the chunker utility, the downloader utility requires an input xml file, which is explained in Section **Configuration file for the downloader utility**.
 
 ## Putting reference and index files on each node of the cluster
-// To be added
+This can be done in three different ways, as listed below.
+
+1. The first obvious way is to manually place these files in some local directory of each node.
+2. Another way is to give the value `./` to the `sfFolder` field of SparkGA's configuration file. Giving this value means that these files should be in an executor's current directory. Therefore SparkGA will itself download them from the HDFS.
+3. The third way is to use the filesDownloader utility, which will copy these files on each node. The filesDownloader utility takes an xml file as input (Please see Section **Configuration file for the downloader utility** for more details) and can be run using the **runDownloader.py** python script. This script takes at least two parameters. The first parameter is the path of the xml file, while the second parameter is the mode. The mode can be one of the following. Note that for some modes (For example, **cp**) a third parameter is required.
+	* **cpAll**: Copy all the reference and index files to the local directory (sfFolder) of all nodes
+	* **cp**: Copy a file (name of file is given as the third parameter) from the input hdfs folder to the local directory (sfFolder) of all nodes
+	* **rmAll**: Remove all files from the local directory (sfFolder) of all nodes
+	* **rmExt**: Remove files of a certain extension (extension is given as the third parameter) from the local directory directory (sfFolder) of all nodes
+	* **rm:** Remove a file (name of file is given as the third parameter) from the local directory (sfFolder) of all nodes
+	* **ls**: Display files in the local directory (sfFolder) of all nodes
 
 ## Configuration files
 
 ### Configuration file for SparkGA
 1. **mode** - The mode of running. Its value could be `local`, `yarn-client` or `yarn-cluster` (we will collectively call `yarn-client` and `yarn-cluster`, cluster modes from now on).
-2. **refPath** - The path of the fasta file. All the accompanying files, such as \*.fasta.bwt, \*.dict and \*.fasta.pac etc. should be in the same folder as the fasta file. The names of those files would be infered from the fasta file. For local mode, these files should be in some local directory, while for cluster modes, they should be in an HDFS directory. Note that if you have already downloaded these files to each node, then only giving the name of the fasta file would suffice. This rule also applies for ```snpPath``` and ```indelPath```.
+2. **refPath** - The path of the FASTA file. All the accompanying files, such as \*.fasta.bwt, \*.dict and \*.fasta.pac etc. should be in the same folder as the FASTA file. The names of those files would be infered from the FASTA file. For local mode, these files should be in some local directory, while for cluster modes, they should be in an HDFS directory. Note that if you have already downloaded these files to each node, then only giving the name of the fasta file would suffice. This rule also applies for ```snpPath``` and ```indelPath```.
 3. **snpPath** - The path to the snp vcf file used for known sites in base recalibration. 
 4. **indelPath** - The path to the indel vcf file used for known indels in indel realignment. If you want the indel realigner to not use any known indels, you can leave this field empty, or even ommit this tag altogehter.
-5. **exomePath** - The path of the bed or intervals file for exome sequencing. For local mode, this should be a local path, while for cluster modes and HDFS path. Note that in cluster modes, this file is read directly from the HDFS. Therefore, this file must be present in the HDFS for cluster modes.
-6. **inputFolder** - The folder that contains the input chunks. For local mode, this would be a local directory, while for cluster modes, an HDFS directory. If you specify `chunkerConfigFilePath` and `chunkerGroupSize` (See tags at number 38 and 39), the chunker utility would create this folder and upload chunks on the fly.
+5. **exomePath** - The path of the bed or intervals file for exome sequencing. For local mode, this should be a local path, while for cluster modes an HDFS path. Note that in cluster modes, this file is read directly from the HDFS. Therefore, this file must be present in the HDFS for cluster modes.
+6. **inputFolder** - The folder that contains the input chunks. For local mode, this would be a local directory, while for cluster modes, an HDFS directory. If you specify `chunkerConfigFilePath` and `chunkerGroupSize` (See tags at number 37 and 38), the chunker utility would create this folder and upload chunks on the fly.
 7. **outputFolder** - The output folder that will contain the final output vcf file namely `sparkCombined.vcf`. Moreover, this folder would also contain the log folder with log files, the purpose of which is to let  user to check the progression of the program. 
 8. **toolsFolder** - This folder contains all the tools for executing the GATK pipeline, such as bwa, Markduplicates.jar and GenomeAnalysiTK.jar etc. This folder would always be in a local directory, regardless of the mode. For cluster modes, the python script `runPart.py` would send the programs to each executor, using `--files` when executing `spark-submit`.
 9. **tmpFolder** - This folder is the one used for storing temporary files. This folder would be in a local directory. For cluster modes, this folder would be present on each node.
-10. **sfFolder** - This is the folder, where all the reference and index files are stored. This folder would be in a local directory. For cluster modes, this folder would be present on each node.
+10. **sfFolder** - This is the folder, where all the reference and index files are stored. This folder would be in a local directory. For cluster modes, this folder would be present on each node. If `./` is used, SparkGA would download the reference files to `./`, which is executor's current directory. This means that those files would also get deleted at the end of execution. To permanently place these files on the local directories of nodes, either use the filesDownloader utility or manually copy them to each node.
 11. **rgString** - The read group string given to the bwa program
 12. **extraBWAParams** - Any extra parameters given to the bwa program besides the read group string, input files, reference fasta file name and number of threads. For example, for paired-ended reads, you must put `-p`, as the chunker utility would always create interleaved chunks for paired-ended FASTQ files.
 13. **gatkOpts** - Any additional parameters given when running jar files. For example, `-XX:+AggressiveOpts`.
@@ -80,14 +104,14 @@ Before you run SparkGA, make sure you have the following files available.
 28. **vcMemGB** - The memory in GB used by Java to run a jar program.
 29. **driverMemGB3** - The driver memory in GB for Part 3. For local mode, if say you want to use the full memory of the system, then the driver memory should be nearly equal to the full memory of the system. For cluster modes however, this is only the memory of the driver.
 30. **numInstances3** - The number of instances of executors for Part 3. Note that this parameter doesn't make sense for local mode. So, for local mode, you can even ommit it.
-31. **numThreads3** - The number of threads to use for variant discovery tools of Part 3.
+31. **numThreads3** - The number of threads to use for variant discovery tools of Part 3. We have noticed that for haplotype caller, for regions with a lot of mutations, increasing the number of threads greatly improve the performance. When running on a machine with simultaneous multithreading, at least keep the number of threads equal to the number of simultaneous threads of a core.
 32. **numTasks3** - The number of tasks per each executor in Part 3. In cluster modes, the total number of tasks running on the whole cluster would then be `numInstances3 * numTasks3`. For local mode, on the other hand, the total number of tasks would simply be equal to `numTasks3`. 
 33. **standEC** - The value of `stand_emit_conf` for haplotype caller.
 34. **standCC** - The value of `stand_call_conf` for haplotype caller.
 35. **doIndelRealignment** - `true `or `false` depending on whether you want to perform indel realignment. Assumed `true` if ommitted.
 36. **doPrintReads** - `true `or `false` depending on whether you want to perform print reads. Assumed `true` if ommitted.
 37. **chunkerConfigFilePath** - If you want to perform chunking of the input FASTQ files on the fly, give the path of the config file for the chunker utility. If you leave this field empty or ommit it, chunking would not be done on the fly. 
-38. **chunkerGroupSize** - When chunking is done in parallel, the Part 1 of SparkGA would process chunks in groups. For example, if you give a group size of 512, and the chunker eventually creates 1500 chunks overall, part1 would first process the 512 files and when all those 512 files are processed, will start processing the next 512 chunks. So, it would complete execution in 3 steps. However, if you can accurately predict the number of chunks that would be created by the chunker, you can give a slightly higher estimate. For example, if you give a value of 1700 for our example, Part 1 would just use one round. The tasks processing chunk IDs greater than 1499 would simply return without doing anything, as no correspodnding chunk would exist for such IDs. Therefore, giving a slightly higher estimate won't impact the execution speed of Part 1 as such. If you are not doing chunking in parallel, then of course you can leave this field empty or even ommit it altogether.
+38. **chunkerGroupSize** - When chunking is done in parallel, the Part 1 of SparkGA would process chunks in groups. For example, if you give a group size of 512, and the chunker eventually creates 1500 chunks overall, Part 1 would first process the 512 files and when all those 512 files are processed, will start processing the next 512 chunks. So, it would complete execution in 3 steps. However, if you can accurately predict the number of chunks that would be created by the chunker, you can give a slightly higher estimate. For example, if you give a value of 1700 for our example, Part 1 would just use one round. The tasks processing chunk IDs greater than 1499 would simply return without doing anything, as no correspodnding chunk would exist for such IDs. Therefore, giving a slightly higher estimate won't impact the execution speed of Part 1 as such. If you are not doing chunking in parallel, then of course you can leave this field empty or even ommit it altogether.
 
 ### Configuration file for the chunker utility
 The chunker program is run on the master node, which means it is not distributed like SparkGA. It can take both compressed (gzipped) or uncompressed FASTQ files as input. By default, it uploads the chunks it makes to an HDFS directory specified as `outputFolder` in the configuration file. However, if you prefix the value of `outputFolder` with `local:`, it would put the chunks in a local folder. For example, if you specify `local:/home/hamidmushtaq/data/chunks`, it would put the chunks in the folder `/home/hamidmushtaq/data/chunks`. So, when using with SparkGA in local mode, always use the prefix `local:` for the `outputFolder` in the configuration file of the chunker utility. Moreover, you don't have to create the output folder yourself, as the chunker program would create one itself.
@@ -113,7 +137,9 @@ The chunker program is run on the master node, which means it is not distributed
 9. **driverMemGB** - The driver memory in GB.
 
 ## Running SparkGA
-// To be added
+SparkGA consists of three parts. The python script `runAll.py` will run these three parts one after another using the `runPart.py` script. The `runPart.py` script takes two parameters. The first being the input xml file, while the second being the part number. For example, if the xml file's path is config/config.xml, you can run the Part 1 by typing `runPart.py config/config.xml 1`. If you want to run all the parts one after the other without your intervention, you can simply use the `runAll.py` script which takes the input xml file as a parameter. The `runAll.py` script would also save the Spark's output in log files (log1.txt, log2.txt and log3.txt respectively for the three parts) for each part. You can also give runAll.py an optional second parameter to start execution from a certain part. For example, `runAll.py config/config.xml 2` would start execution from the second part, rather than the first part.
+
+If you are not running the chunker utility in parallel (to make chunks on the fly), and want to run the chunker utility separately first before running SparkGA, you can use the runChunker.py python script which takes an xml file as an input (See Section **Configuration file for the chunker utility** for more details on that xml file).
 
 
 
