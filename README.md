@@ -32,7 +32,7 @@ Note that your Spark version should match the hadoop version. For example, if yo
 This of course assumes that you have an environment variable $HADOOP_INSTALL that points to the hadoop's home directory.
 
 ## Compiling
-For compiling, go the the program folder and type `sbt package`. Likewise, for compiling the filesDownloader utility, go the filesDownloader folder and type `sbt package`. The code for the chunker utility can be found at https://github.com/HamidMushtaq/FastqChunker, but a compiled jar file is also placed in the chunker folder here.
+For compiling, go to the program folder and type `sbt package`. Likewise, for compiling the filesDownloader utility, go to the filesDownloader folder and type `sbt package`. The code for the chunker utility can be found at https://github.com/HamidMushtaq/FastqChunker, but a compiled jar file is also placed in the chunker folder here.
 
 ## Files required
 
