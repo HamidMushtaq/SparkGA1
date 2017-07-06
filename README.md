@@ -99,9 +99,18 @@ The chunker program is run on the master node, which means it is not distributed
 6. **blockSizeMB** - The input FASTQ files are read block by block. In this field, you specify how big such block should be in MBs. The bigger the block size, the more memory would be consumed. However, bigger block size can also mean better performance.
 7. **driverMemGB** - The memory used by the chunker utility in GBs.
 8. **numThreads** - The number of threads performing chunking. Try to use as many threads as possible as allowed by your system.
+9. **interleave** - `true` or `false` depending on whether you want to interleave the contents of the two FASTQ files for a paired-ended input into single chunks. For SparkGA, when using pair-ended input, you must always set this field to `true`. For single-ended input, this field is ignored and can even be ommitted.
 
 ### Configuration file for the downloader utility
-// To be added
+1. **mode** - Can be either `yarn-cluster` or `yarn-client`.
+2. **inputFolder** - The HDFS folder containing all the reference and index files.
+3. **refFileName** - The reference FASTA file name. Name of files accompanying that FASTA file, such as *.dict and *.fasta.fai would be infered automatically by the downloader utility.
+4. **snpFileName** - The name of the vcf file containing the known snps. The name of the accompanying index file would be infered automatically by the downloader utility.
+5. **indelFileName** - The name of the vcf file containing the known indels. The name of the accompanying index file would be infered automatically by the downloader utility. Leave this field empty if you don't want to use such file with the the indel realigner.
+6. **sfFolder** - This is the folder, where all the reference and index files would be stored. This folder would be in a local directory. This folder would be present on each node, and would be created by the downloader utility if not present.
+7. **numNodes** - The total number of nodes in the cluster.
+8. **execMemGB** - The executor memory in GB. Its value should be between 0.5 and 1 of the total memory in each data node, so that exactly one executor runs and therefore copies files on each node. It is assumed here that each node has the same amount of memory. Moreover, it is assumed that no other program is running on the cluster.
+9. **driverMemGB** - The driver memory in GB.
 
 ## Running SparkGA
 // To be added
