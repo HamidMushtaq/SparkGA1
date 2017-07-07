@@ -10,9 +10,10 @@ import os
 import time
 
 # Options:
-# 	cpAll: Copy all the reference and vcf files to the local directory (sfFolder) of all nodes
+# 	cpAll: Copy all the reference and index files to the local directory (sfFolder) of all nodes
 # 	cp: Copy a file from the input hdfs folder to the local directory (sfFolder) of all nodes
 # 	rmAll: Remove all files from the local directory (sfFolder) of all nodes
+# 	rmJunk: Remove junk files, that is, all files besides the reference and index files, from the local directory (sfFolder) of all nodes
 # 	rmExt: Remove files of a certain extension from the local directory directory (sfFolder) of all nodes
 #	rm: Remove a file from the local directory (sfFolder) of all nodes
 # 	ls: Display files in the local directory (sfFolder) of all nodes

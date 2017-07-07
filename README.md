@@ -67,6 +67,7 @@ This can be done in three different ways, as listed below.
 	* **cpAll**: Copy all the reference and index files to the local directory (sfFolder) of all nodes
 	* **cp**: Copy a file (name of file is given as the third parameter) from the input hdfs folder to the local directory (sfFolder) of all nodes
 	* **rmAll**: Remove all files from the local directory (sfFolder) of all nodes
+	* **rmJunk**: Remove junk files, that is, every file besides the referenced and index files.
 	* **rmExt**: Remove files of a certain extension (extension is given as the third parameter) from the local directory directory (sfFolder) of all nodes
 	* **rm:** Remove a file (name of file is given as the third parameter) from the local directory (sfFolder) of all nodes
 	* **ls**: Display files in the local directory (sfFolder) of all nodes
