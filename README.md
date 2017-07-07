@@ -63,11 +63,11 @@ This can be done in three different ways, as listed below.
 
 1. The first obvious way is to manually place these files in some local directory of each node.
 2. Another way is to give the value `./` to the `sfFolder` field of SparkGA's configuration file. Giving this value means that these files should be in an executor's current directory. Therefore SparkGA will itself download them from the HDFS.
-3. The third way is to use the filesDownloader utility, which will copy these files on each node. The filesDownloader utility takes an xml file as input (Please see Section **Configuration file for the downloader utility** for more details) and can be run using the **runDownloader.py** python script. This script takes at least two parameters. The first parameter is the path of the xml file, while the second parameter is the mode. The mode can be one of the following. Note that for some modes (For example, **cp**) a third parameter is required.
+3. The third way is to use the filesDownloader utility, which will copy these files on each node. The filesDownloader utility takes an xml file as input (Please see Section **Configuration file for the downloader utility** for more details) and can be run using the `runDownloader.py` python script. This script takes at least two parameters. The first parameter is the path of the xml file, while the second parameter is the mode. The mode can be one of the following. Note that for some modes (For example, **cp**) a third parameter is required.
 	* **cpAll**: Copy all the reference and index files to the local directory (sfFolder) of all nodes
 	* **cp**: Copy a file (name of file is given as the third parameter) from the input hdfs folder to the local directory (sfFolder) of all nodes
 	* **rmAll**: Remove all files from the local directory (sfFolder) of all nodes
-	* **rmJunk**: Remove junk files, that is, every file besides the referenced and index files.
+	* **rmJunk**: Remove junk files, that is, every file besides the referenced and index files, from the local directory (sfFolder) of all nodes.
 	* **rmExt**: Remove files of a certain extension (extension is given as the third parameter) from the local directory directory (sfFolder) of all nodes
 	* **rm:** Remove a file (name of file is given as the third parameter) from the local directory (sfFolder) of all nodes
 	* **ls**: Display files in the local directory (sfFolder) of all nodes
