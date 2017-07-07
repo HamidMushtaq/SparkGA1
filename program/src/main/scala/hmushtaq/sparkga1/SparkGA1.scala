@@ -132,11 +132,12 @@ object SparkGA1
 		LogWriter.dbgLog("bwa/" + x, "1\tbwa mem started, RGID = " + config.getRGID + " -> " + command_str, config)
 		var writerMap = new HashMap[(Integer, Integer), SamRegion]()
 		val samRegionsParser = new SamRegionsParser(x, writerMap, config)
+		val stdErrorSb = new StringBuilder
 		val logger = ProcessLogger(
 			(o: String) => {
 				samRegionsParser.append(o)
 				},
-			(e: String) => {} // do nothing
+			(e: String) => {stdErrorSb.append(e + '\n')}
 		)
 		command_str ! logger;
 		new File(fqFileName).delete()
@@ -208,7 +209,8 @@ object SparkGA1
 		FileManager.writeWholeFile(config.getOutputFolder + "bwaPos/pos_" + x + "-" + posCurrentNum, posOutStr.toString, config)
 		dbgStr.append("\n" + (System.currentTimeMillis - t1).toString)
 		//LogWriter.dbgLog("bwa/" + x, t0, "*\tTime taken by each loop iteration for chunk making step = " + dbgStr, config)
-		LogWriter.dbgLog("bwa/" + x, "3\tSAM files uploaded to the HDFS. # of positions files = " + posCurrentNum + ", # of sam files = " + currentNum, config)
+		LogWriter.dbgLog("bwa/" + x, "3\tSAM files uploaded to the HDFS. # of positions files = " + posCurrentNum + ", # of sam files = " + 
+			currentNum + "\n=============================================================================\n" + stdErrorSb.toString, config)
 
 		return res.toArray
 	}
@@ -773,7 +775,7 @@ object SparkGA1
 			hdfsManager.upload(chrRegion + ".vcf", config.getTmpFolder, config.getOutputFolder + "vcfs/", true)
 		}
 		
-		LogWriter.dbgLog("vcf/region_" + chrRegion, "9\tOutput written to vcf file", config)
+		LogWriter.dbgLog("vcf/region_" + chrRegion, "9\tOutput written to vcf file. r = " + cmdRes + " (r > 0 implies error(s))", config)
 		return cmdRes
 	}
 
@@ -957,6 +959,7 @@ object SparkGA1
 	{
 		val conf = new SparkConf().setAppName("SparkGA1")
 		val sc = new SparkContext(conf)
+		val appID = sc.applicationId
 		val config = new Configuration()
 		config.initialize(args(0), sc.deployMode, args(1))
 		val part = args(1).toInt
@@ -983,6 +986,11 @@ object SparkGA1
 				hdfsManager.create("sparkLog.txt")
 			else
 				FileManager.makeDirIfRequired(config.getOutputFolder + "log", config)
+		}
+		
+		hdfsManager.synchronized
+		{
+			LogWriter.statusLog("Started:", "Part " + part + ", Application ID: " + appID, config)
 		}
 		
 		var t0 = System.currentTimeMillis
@@ -1092,20 +1100,29 @@ object SparkGA1
 				s.add((e(0).toInt, e(1).toInt))
 			}
 			
-			LogWriter.statusLog("Input Size: ", input.size.toString, config)
+			hdfsManager.synchronized
+			{
+				LogWriter.statusLog("Input Size:", input.size.toString, config)
+			}
 			
 			val inputArray = input.toArray
 			// <(chr, reg), (fname, numOfReads, minPos, maxPos)>
 			val inputData = sc.parallelize(inputArray, s.size)
 			inputData.cache()
 			val totalReads = inputData.map(x => x._2._2).reduce(_+_)
-			LogWriter.statusLog("Total Reads: ", totalReads.toString, config)
+			hdfsManager.synchronized
+			{
+				LogWriter.statusLog("Total Reads:", totalReads.toString, config)
+			}
 			// <(chr, reg), Array((fname, numOfReads, minPos, maxPos))>
 			val chrReg = inputData.groupByKey
 			chrReg.cache()
 			chrReg.setName("rdd_chrReg")
 			val avgReadsPerRegion = totalReads / chrReg.count
-			LogWriter.statusLog("chrReg: ", "Chr regions:" + chrReg.count + ", Total reads: " + avgReadsPerRegion, config)
+			hdfsManager.synchronized
+			{
+				LogWriter.statusLog("chrReg:", "Chr regions:" + chrReg.count + ", Total reads: " + avgReadsPerRegion, config)
+			}
 			// <(chr, reg), segments>
 			val loadBalRegions = 
 			{
@@ -1173,7 +1190,24 @@ object SparkGA1
 			}
 			//////////////////////////////////////////////////////////////////////
 			inputData.setName("rdd_inputData")
-			val vcf = inputData.map(x => variantCall(x, bcConfig.value)).flatMap(x=> getVCF(x._1, bcConfig.value))
+			val vcRes = inputData.map(x => variantCall(x, bcConfig.value)).cache
+			vcRes.setName("rdd_vcRes")
+			val successfulSb = new StringBuilder
+			val failedSb = new StringBuilder
+			for(e <- vcRes.collect)
+			{
+				if (e._2 > 0)
+					failedSb.append(e._1 + '\n')
+				else
+					successfulSb.append(e._1 + '\n')
+			}
+			hdfsManager.synchronized
+			{
+				LogWriter.statusLog("vcf tasks:", "\nSuccessful tasks:\n" + successfulSb.toString + 
+					"=======================================================\nFailed tasks:\n" + failedSb.toString + 
+					"=======================================================", config)
+			}
+			val vcf = vcRes.flatMap(x=> getVCF(x._1, bcConfig.value))
 			vcf.setName("rdd_vcf")
 			try
 			{
@@ -1197,7 +1231,10 @@ object SparkGA1
 		}
 		//////////////////////////////////////////////////////////////////////////
 		var et = (System.currentTimeMillis - t0) / 1000
-		LogWriter.statusLog("Execution time:", et.toString() + "\tsecs", config)
+		hdfsManager.synchronized
+		{
+			LogWriter.statusLog("Ended:", "Part " + part + ", Application ID: " + appID + ". Time taken = " + et.toString() + " secs", config)
+		}
 	}
 	//////////////////////////////////////////////////////////////////////////////
 } // End of Class definition
