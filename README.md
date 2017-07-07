@@ -75,6 +75,8 @@ This can be done in three different ways, as listed below.
 ## Configuration files
 
 ### Configuration file for SparkGA
+Three example configuration files are given in the `config `folder, namely `localSingleEndedExample.xml`, `pairedWithIgnoreExample.xml` and `singleEndedExample.xml`.
+
 1. **mode** - The mode of running. Its value could be `local`, `yarn-client` or `yarn-cluster` (we will collectively call `yarn-client` and `yarn-cluster`, cluster modes from now on).
 2. **refPath** - The path of the FASTA file. All the accompanying files, such as \*.fasta.bwt, \*.dict and \*.fasta.pac etc. should be in the same folder as the FASTA file. The names of those files would be infered from the FASTA file. For local mode, these files should be in some local directory, while for cluster modes, they should be in an HDFS directory. Note that if you have already downloaded these files to each node, then only giving the name of the fasta file would suffice. This rule also applies for ```snpPath``` and ```indelPath```.
 3. **snpPath** - The path to the snp vcf file used for known sites in base recalibration. 
@@ -115,7 +117,8 @@ This can be done in three different ways, as listed below.
 38. **chunkerGroupSize** - When chunking is done in parallel, the Part 1 of SparkGA would process chunks in groups. For example, if you give a group size of 512, and the chunker eventually creates 1500 chunks overall, Part 1 would first process the 512 files and when all those 512 files are processed, will start processing the next 512 chunks. So, it would complete execution in 3 steps. However, if you can accurately predict the number of chunks that would be created by the chunker, you can give a slightly higher estimate. For example, if you give a value of 1700 for our example, Part 1 would just use one round. The tasks processing chunk IDs greater than 1499 would simply return without doing anything, as no correspodnding chunk would exist for such IDs. Therefore, giving a slightly higher estimate won't impact the execution speed of Part 1 as such. If you are not doing chunking in parallel, then of course you can leave this field empty or even ommit it altogether.
 
 ### Configuration file for the chunker utility
-The chunker program is run on the master node, which means it is not distributed like SparkGA. It can take both compressed (gzipped) or uncompressed FASTQ files as input. By default, it uploads the chunks it makes to an HDFS directory specified as `outputFolder` in the configuration file. However, if you prefix the value of `outputFolder` with `local:`, it would put the chunks in a local folder. For example, if you specify `local:/home/hamidmushtaq/data/chunks`, it would put the chunks in the folder `/home/hamidmushtaq/data/chunks`. So, when using with SparkGA in local mode, always use the prefix `local:` for the `outputFolder` in the configuration file of the chunker utility. Moreover, you don't have to create the output folder yourself, as the chunker program would create one itself.
+The chunker program is run on the master node, which means it is not distributed like SparkGA. It can take both compressed (gzipped) or uncompressed FASTQ files as input. By default, it uploads the chunks it makes to an HDFS directory specified as `outputFolder` in the configuration file. However, if you prefix the value of `outputFolder` with `local:`, it would put the chunks in a local folder. For example, if you specify `local:/home/hamidmushtaq/data/chunks`, it would put the chunks in the folder `/home/hamidmushtaq/data/chunks`. So, when using with SparkGA in local mode, always use the prefix `local:` for the `outputFolder` in the configuration file of the chunker utility. Moreover, you don't have to create the output folder yourself, as the chunker program would create one itself. Two example configuration files are shown in the `config/chunkerConfig folder`.
+
 1. **fastq1Path** - The path of the first FASTQ file for a pair-ended input or the only FASTQ file for a single-ended input. Note that the chunker utility would automatically infer if the input file is compressed or not by seeing the `.gz` extension.
 2. **fastq2Path** - The path of the second FASTQ file for a pair-ended input. For a single-ended input, leave this field empty (Like this -> `<fastq2Path></fastq2Path>`). You can't ommit it though.
 3. **outputFolder** - The output folder path where the chunks would be placed. Prefix with `local:` if you want this folder to be in the local directory.
@@ -127,6 +130,8 @@ The chunker program is run on the master node, which means it is not distributed
 9. **interleave** - `true` or `false` depending on whether you want to interleave the contents of the two FASTQ files for a paired-ended input into single chunks. For SparkGA, when using pair-ended input, you must always set this field to `true`. For single-ended input, this field is ignored and can even be ommitted.
 
 ### Configuration file for the downloader utility
+An example configuration file is placed in the config folder by the name of `downloadExample.xml`.
+
 1. **mode** - Can be either `yarn-cluster` or `yarn-client`.
 2. **inputFolder** - The HDFS folder containing all the reference and index files.
 3. **refFileName** - The reference FASTA file name. Name of files accompanying that FASTA file, such as \*.dict and *.fasta.fai would be infered automatically by the downloader utility.
