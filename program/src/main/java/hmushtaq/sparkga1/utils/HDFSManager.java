@@ -86,6 +86,25 @@ public class HDFSManager
 		}
 	}
 	
+	public OutputStream openStream(String fname) throws IOException
+	{
+		try
+		{
+			Path filenamePath = new Path(fname);  
+		
+			if (fs.exists(filenamePath))
+				fs.delete(filenamePath, true);
+				
+			FSDataOutputStream fout = fs.create(filenamePath);
+			return fout;
+		}
+		catch (IOException ex) 
+		{
+            ex.printStackTrace();
+			return null;
+        }
+	}
+	
 	public boolean exists(String fname)
 	{
 		try

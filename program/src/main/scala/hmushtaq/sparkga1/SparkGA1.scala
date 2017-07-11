@@ -55,6 +55,7 @@ object SparkGA1
 {
 	final val saveAllStages = false
 	final val downloadSAMFileInLB = true
+	final val writeToHDFSDirectlyInLB = false
 	// Scheduling
 	final val sizeBasedLBScheduling = true
 	final val sizeBasedVCScheduling = true
@@ -582,7 +583,12 @@ object SparkGA1
 		//
 		
 		val factory = new SAMFileWriterFactory()
-		val writer = factory.makeBAMWriter(header, true, new File(tmpFileBase + "-p1.bam"))
+		val writer = {
+			if ((config.getMode != "local") && writeToHDFSDirectlyInLB)
+				factory.makeBAMWriter(header, true,  hdfsManager.openStream(config.getOutputFolder + "bam/" + chrRegion + "-p1.bam"))
+			else
+				factory.makeBAMWriter(header, true, new File(tmpFileBase + "-p1.bam")) 
+		}
 		val regionIter = new RegionIterator(samRecords, header, startIndex, endIndex)
 		val RGID = config.getRGID
 		var count = 0
@@ -607,12 +613,13 @@ object SparkGA1
 		}
 		regionIter.addLastChrRange()
 		val reads = regionIter.getCount()
-		writer.close()
+		writer.close
 		
 		LogWriter.dbgLog("lb" + part + "/region_" + chrRegion, "2\tMaking bed file. Reads = " + reads + ", written = " + count, config)
 		makeRegionFile(tmpFileBase, regionIter, config)
 		
-		FileManager.uploadFileToOutput(tmpFileBase + "-p1.bam", "bam", true, config)
+		if (!writeToHDFSDirectlyInLB)
+			FileManager.uploadFileToOutput(tmpFileBase + "-p1.bam", "bam", true, config)
 		FileManager.uploadFileToOutput(tmpFileBase + ".bed", "bed", true, config)
 		LogWriter.dbgLog("lb" + part + "/region_" + chrRegion, "3\tBAM and bed files uploaded to the HDFS", config)
 		
