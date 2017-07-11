@@ -109,8 +109,8 @@ class SamRecsReader(is: InputStream, config: Configuration)
 			{
 				val samrecord = parser.parseLine(mCurrentLine, mReader.getLineNumber())
 			
-				if ((count != 0) && ((count % 500000) == 0))
-					println("Hamid >> " + count + " records parsed.")
+				//if ((count != 0) && ((count % 500000) == 0))
+				//	println("Hamid >> " + count + " records parsed.")
 			
 				if (writerMap == null)
 					count += writeSAMRecord(samrecord)
@@ -126,7 +126,7 @@ class SamRecsReader(is: InputStream, config: Configuration)
 		}
         
 		mReads = count
-		println("SAMstream counts " + count + " records");
+		//println("SAMstream counts " + count + " records");
 	
 		return badLines
 	}
