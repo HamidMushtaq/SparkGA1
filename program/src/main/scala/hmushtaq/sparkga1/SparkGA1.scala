@@ -55,7 +55,7 @@ object SparkGA1
 {
 	final val saveAllStages = false
 	final val downloadSAMFileInLB = true
-	final val writeToHDFSDirectlyInLB = false
+	final val writeToHDFSDirectlyInLB = true
 	// Scheduling
 	final val sizeBasedLBScheduling = true
 	final val sizeBasedVCScheduling = true
@@ -284,7 +284,8 @@ object SparkGA1
 		// Reads writen per segment
 		val readsWritten = ArrayBuffer.empty[Long]
 		
-		// Initialize the data structures for a region with more than one segments
+		val threadArray = new Array[Thread](nThreads)
+		
 		if (segments > 1)
 		{
 			val header = createHeader(config)
@@ -302,7 +303,7 @@ object SparkGA1
 			
 			LogWriter.dbgLog("lb2/" + chr + "_" + reg, "2a\tGetting the positions. Number of input files = " + shuffledFiles.size, config)
 			val contentArray = new Array[StringBuilder](nThreads) 
-			val fileInfoPerThread = ArrayBuffer.empty[scala.collection.mutable.ArrayBuffer[String]]
+			var fileInfoPerThread = ArrayBuffer.empty[scala.collection.mutable.ArrayBuffer[String]]
 			
 			for( a <- 0 until nThreads)
 			{
@@ -317,7 +318,6 @@ object SparkGA1
 				index += 1
 			}
 			
-			val threadArray = new Array[Thread](nThreads)
 			for(thread <- 0 until nThreads)
 			{
 				// Multithreaded /////////////////////////////////////////////////
@@ -344,44 +344,9 @@ object SparkGA1
 			for(thread <- 0 until nThreads)
 				content.append(contentArray(thread))
 			alnPosArray = content.split('\n').map(x => x.toInt)
+			retSegments = segments
 			LogWriter.dbgLog("lb2/" + chr + "_" + reg, "2b\tGot all " + alnPosArray.size + " positions in an array.", config)
-		}
-				
-		for (file <- shuffledFiles)
-		{
-			val fileInfo = file._1.split(',')
-			
-			if (segments > 1)	// For a region with more than one segment
-				retSegments = segments
-			else 
-			{	
-				//val content = FileManager.readWholeFile(config.getOutputFolder + "samChunks/" + fileInfo(0), config).slice(fileInfo(1).toInt, fileInfo(2).toInt)
-				val content = FileManager.readPartialFile(config.getOutputFolder + "samChunks/" + fileInfo(0), 
-					fileInfo(2).toInt, config).slice(fileInfo(1).toInt, fileInfo(2).toInt)
-				
-				// Get sam records from the chunk
-				val bwaKeyValues = new SamRecsReader(new StringBufferInputStream(content), config)	
-				bwaKeyValues.parseSam(null)
-				val kvPairs: Array[(Integer, SAMRecord)] = bwaKeyValues.getKeyValuePairs()
-				bwaKeyValues.close()
-			
-				for (e <- kvPairs)
-					samRecords.append(e)
-				
-				fileCount += 1
-				if ((fileCount % 50) == 0)
-					LogWriter.dbgLog("lb/" + chr + "_" + reg, "2\tRead " + fileCount + " files into the array.", config)
-			}
-		} // End of for
-		
-		if (segments <= 1) // For a region with just one segment
-		{
-			LogWriter.dbgLog("lb/" + chr + "_" + reg, "3\tRead all " + fileCount + " files into the array.", config)
-			writeToBAMAndBed(chr + "_" + reg, samRecords.toArray, 0, samRecords.size, config)
-			LogWriter.dbgLog("lb/" + chr + "_" + reg, "4\t" + fileCount + " SAM files processed. Combined file uploaded to the HDFS.", config)
-		}
-		else 
-		{
+			//////////////////////////////////////////////////////////////////
 			val readsPerSegment = alnPosArray.size / segments
 			
 			// Sort the position array, so that we can use binary search with it
@@ -389,19 +354,18 @@ object SparkGA1
 			
 			LogWriter.dbgLog("lb2/" + chr + "_" + reg, "3a\tTotal number of reads = " + alnPosArray.size + ", reads per segment = " + readsPerSegment, config)
 			
-			val fileInfoPerThread = ArrayBuffer.empty[scala.collection.mutable.ArrayBuffer[String]]
+			fileInfoPerThread = ArrayBuffer.empty[scala.collection.mutable.ArrayBuffer[String]]
 			
 			for( a <- 0 until nThreads)
 				fileInfoPerThread.append(ArrayBuffer.empty[String])
 			
-			var index = 0
+			index = 0
 			for (file <- shuffledFiles)
 			{
 				fileInfoPerThread(index % nThreads).append(file._1)
 				index += 1
 			}
 			
-			val threadArray = new Array[Thread](nThreads)
 			for(thread <- 0 until nThreads)
 			{
 				// Multithreaded /////////////////////////////////////////////////
@@ -455,8 +419,9 @@ object SparkGA1
 						
 					fileCount += 1
 					if ((fileCount % 50) == 0)
-						files.synchronized {LogWriter.dbgLog("lb2/" + chr + "_" + reg, "3b\t" + fileCount + " files and records written by thread " + thread, config)}
+						files.synchronized {LogWriter.dbgLog("lb2/" + chr + "_" + reg, "3b\t" + fileCount + " files processed by thread " + thread, config)}
 				}
+				files.synchronized {LogWriter.dbgLog("lb2/" + chr + "_" + reg, "3b\tTotal files processed by thread " + thread + " = " + fileCount, config)}
 				// Multithreaded /////////////////////////////////////////////////
 					}
 				}
@@ -472,7 +437,6 @@ object SparkGA1
 			val iterations =  Math.ceil(segments/nThreads.toFloat).toInt 
 			for(iter <- 0 until iterations)
 			{
-				val threadArray = new Array[Thread](nThreads)
 				var nUsedThreads = 0
 				for(thread <- 0 until nThreads)
 				{
@@ -514,6 +478,70 @@ object SparkGA1
 			}
 			
 			LogWriter.dbgLog("lb2/" + chr + "_" + reg, "5\tDone writing contents of all sam files.", config)
+		}
+		else
+		{
+			val fileInfoPerThread = ArrayBuffer.empty[scala.collection.mutable.ArrayBuffer[String]]
+			
+			for( a <- 0 until nThreads)
+				fileInfoPerThread.append(ArrayBuffer.empty[String])
+			
+			var index = 0
+			for (file <- shuffledFiles)
+			{
+				fileInfoPerThread(index % nThreads).append(file._1)
+				index += 1
+			}
+			
+			for(thread <- 0 until nThreads)
+			{
+				// Multithreaded /////////////////////////////////////////////////
+				threadArray(thread) = new Thread {
+					override def run {
+				//////////////////////////////////////////////////////////////////
+				var fileCount = 0
+				for (fi <- fileInfoPerThread(thread))
+				{
+					val fileInfo = fi.split(',')
+										
+					//val content = FileManager.readWholeFile(config.getOutputFolder + "samChunks/" + fileInfo(0), config).slice(fileInfo(1).toInt, fileInfo(2).toInt)
+					val content = FileManager.readPartialFile(config.getOutputFolder + "samChunks/" + fileInfo(0), 
+						fileInfo(2).toInt, config).slice(fileInfo(1).toInt, fileInfo(2).toInt)
+					
+					// Get sam records from the chunk
+					val bwaKeyValues = new SamRecsReader(new StringBufferInputStream(content), config)	
+					bwaKeyValues.parseSam(null)
+					val kvPairs: Array[(Integer, SAMRecord)] = bwaKeyValues.getKeyValuePairs()
+					bwaKeyValues.close()
+				
+					samRecords.synchronized
+					{
+						for (e <- kvPairs)
+							samRecords.append(e)
+					}
+					
+					fileCount += 1
+					if ((fileCount % 50) == 0)
+						samRecords.synchronized {
+							LogWriter.dbgLog("lb/" + chr + "_" + reg, "2\tRead " + fileCount + " files into the array by thread " + thread, config)
+						}
+				} // End of for
+				samRecords.synchronized {
+					LogWriter.dbgLog("lb/" + chr + "_" + reg, "2\tTotal files read by thread " + thread + " = " + fileCount, config)
+				}
+				// Multithreaded /////////////////////////////////////////////////
+					}
+				}
+				threadArray(thread).start
+				//////////////////////////////////////////////////////////////////
+			}
+			// Multithreaded ///////////////////////////////////////////////// 
+			for(thread <- 0 until nThreads)
+				threadArray(thread).join
+			//////////////////////////////////////////////////////////////////
+			LogWriter.dbgLog("lb/" + chr + "_" + reg, "3\tRead all files into the array.", config)
+			writeToBAMAndBed(chr + "_" + reg, samRecords.toArray, 0, samRecords.size, config)
+			LogWriter.dbgLog("lb/" + chr + "_" + reg, "4\tBAM and BED files uploaded to the HDFS.", config)
 		}
 		
 		return ((chr, reg), retSegments)
