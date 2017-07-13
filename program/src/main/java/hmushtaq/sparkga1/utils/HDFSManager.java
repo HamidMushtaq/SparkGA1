@@ -100,9 +100,9 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
+			ex.printStackTrace();
 			return null;
-        }
+		}
 	}
 	
 	public boolean exists(String fname)
@@ -131,8 +131,8 @@ public class HDFSManager
 		}
 		catch (IOException ex) 
 		{
-            ex.printStackTrace();
-        }
+			ex.printStackTrace();
+		}
 	}
 	
 	public String readWholeFile(String fname)
