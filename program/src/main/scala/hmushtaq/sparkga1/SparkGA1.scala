@@ -1001,17 +1001,6 @@ object SparkGA1
 		
 		config.print() 
 		
-		if (config.getMode == "local")
-		{
-			conf.setMaster("local[" + config.getNumTasks + "]")
-			conf.set("spark.cores.max", config.getNumTasks)
-		}
-		else
-		{
-			conf.set("spark.shuffle.blockTransferService", "nio") 
-			conf.set("spark.network.timeout", "12000")
-		}
-	   
 		val bcConfig = sc.broadcast(config)
 		val hdfsManager = new HDFSManager
 		
