@@ -931,12 +931,14 @@ object SparkGA1
 		val bqsrStr = if (config.doPrintReads) "" else (" -BQSR " + tmpFileBase + ".table ")
 		val MemString = config.getExecMemX()
 		val regionStr = " -L " + tmpFileBase + ".bed"
+		// Hamid
+		val standconf = if (config.getSCC == "0") " " else (" -stand_call_conf " + config.getSCC)
+		val standemit = if (config.getSEC == "0") " " else (" -stand_emit_conf " + config.getSEC)
 		
 		// Haplotype caller
 		var cmdStr = "java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + "GenomeAnalysisTK.jar -T HaplotypeCaller -nct " + 
 			config.getNumThreads() + " -R " + FileManager.getRefFilePath(config) + " -I " + tmpFile2 + bqsrStr + " --genotyping_mode DISCOVERY -o " + snps + 
-			" -stand_call_conf " + config.getSCC() + " -stand_emit_conf " + config.getSEC() + regionStr + 
-			" --no_cmdline_in_header --disable_auto_index_creation_and_locking_when_reading_rods"
+			standconf + standemit + regionStr + " --no_cmdline_in_header --disable_auto_index_creation_and_locking_when_reading_rods"
 		LogWriter.dbgLog("vcf/region_" + chrRegion, "8\t" + cmdStr, config)
 		var cmdRes = cmdStr.!
 		
@@ -1227,7 +1229,7 @@ object SparkGA1
 			}
 			hdfsManager.synchronized
 			{
-				LogWriter.statusLog("vcf tasks:", "\nSuccessful tasks:\n" + successfulSb.toString + 
+				LogWriter.statusLog("vcf-tasks:", "\nSuccessful tasks:\n" + successfulSb.toString + 
 					"=======================================================\nFailed tasks:\n" + failedSb.toString + 
 					"=======================================================", config)
 			}
@@ -1259,6 +1261,7 @@ object SparkGA1
 		{
 			LogWriter.statusLog("Ended:", "Part " + part + ", Application ID: " + appID + ". Time taken = " + et.toString() + " secs", config)
 		}
+		sc.stop()
 	}
 	//////////////////////////////////////////////////////////////////////////////
 } // End of Class definition
