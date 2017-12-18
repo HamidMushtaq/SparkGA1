@@ -513,7 +513,7 @@ object SparkGA1
 					bwaKeyValues.parseSam(null)
 					val kvPairs: Array[(Integer, SAMRecord)] = bwaKeyValues.getKeyValuePairs()
 					bwaKeyValues.close()
-				
+					
 					samRecords.synchronized
 					{
 						for (e <- kvPairs)
