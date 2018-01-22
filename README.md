@@ -109,8 +109,8 @@ Three example configuration files are given in the `config `folder, namely `loca
 30. **numInstances3** - The number of instances of executors for Part 3. Note that this parameter doesn't make sense for local mode. So, for local mode, you can even ommit it.
 31. **numThreads3** - The number of threads to use for variant discovery tools of Part 3. We have noticed that for haplotype caller, for regions with a lot of mutations, increasing the number of threads greatly improve the performance. When running on a machine with simultaneous multithreading, at least keep the number of threads equal to the number of simultaneous threads of a core.
 32. **numTasks3** - The number of tasks per each executor in Part 3. In cluster modes, the total number of tasks running on the whole cluster would then be `numInstances3 * numTasks3`. For local mode, on the other hand, the total number of tasks would simply be equal to `numTasks3`. 
-33. **standEC** - The value of `stand_emit_conf` for haplotype caller.
-34. **standCC** - The value of `stand_call_conf` for haplotype caller.
+33. **standEC** - The value of `stand_emit_conf` for haplotype caller. For GATK 3.7+, keep this value 0.
+34. **standCC** - The value of `stand_call_conf` for haplotype caller. For GATK 3.7+, keep this value 0.
 35. **doIndelRealignment** - `true `or `false` depending on whether you want to perform indel realignment. Assumed `true` if ommitted.
 36. **doPrintReads** - `true `or `false` depending on whether you want to perform print reads. Assumed `true` if ommitted.
 37. **chunkerConfigFilePath** - If you want to perform chunking of the input FASTQ files on the fly, give the path of the config file for the chunker utility. If you leave this field empty or ommit it, chunking would not be done on the fly. 
