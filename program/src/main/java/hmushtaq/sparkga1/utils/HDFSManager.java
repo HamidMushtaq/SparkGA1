@@ -120,7 +120,7 @@ public class HDFSManager
 		}
 	}
 	
-	public void append(String fname, String s)
+	/*public void append(String fname, String s)
 	{
 		try
 		{			
@@ -130,6 +130,23 @@ public class HDFSManager
 			writer.close();
 		}
 		catch (IOException ex) 
+		{
+			ex.printStackTrace();
+		}
+	}*/
+	public void append(String fname, String s)
+	{
+		try
+		{
+			Path filenamePath = new Path(fname);
+			if (!fs.exists(filenamePath))
+			{
+				FSDataOutputStream fout = fs.create(filenamePath);
+				fout.close();
+			}
+			writeWholeFile(fname, readWholeFile(fname) + s);
+		}
+		catch (IOException ex)
 		{
 			ex.printStackTrace();
 		}
