@@ -68,6 +68,9 @@ public class Configuration implements Serializable
 	private int[] chrRegionSizeArray;
 	private HashMap<String, Integer> chrNameMap;
 	private HashSet<String> ignoreListSet;
+	// Hamid: 16th March 2018
+	private String useGATK4;
+	//
 	
 	public void initialize(String configFilePath, String deployMode, String part)
 	{	
@@ -149,6 +152,10 @@ public class Configuration implements Serializable
 			dictParser.setChrRegionsSizes(Integer.parseInt(numRegions));
 			chrRegionSizeArray = dictParser.getChrRegionSizeArray();
 			chrNameMap = dictParser.getChrNameMap();
+			
+			// Hamid: 16th March 2018
+			useGATK4 = emptyIfTagDoesntExist(document, "useGATK4");
+			//
 		}
 		catch(Exception e)
 		{
@@ -387,6 +394,12 @@ public class Configuration implements Serializable
 	public String getRegionsFactor()
 	{
 		return regionsFactor;
+	}
+	
+	// Hamid: 16th March 2018
+	public boolean getUseGATK4()
+	{
+		return useGATK4.toLowerCase().equals("true");
 	}
 	
 	public void print()

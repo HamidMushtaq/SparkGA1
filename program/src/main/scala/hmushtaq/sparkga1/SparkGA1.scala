@@ -898,16 +898,39 @@ object SparkGA1
 		val indelStr = if (config.useKnownIndels) (" -knownSites " + knownIndel) else ""; 
 		
 		// Base recalibrator
-		var cmdStr = "java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + "GenomeAnalysisTK.jar -T BaseRecalibrator -nct " + 
-			config.getNumThreads() + " -R " + FileManager.getRefFilePath(config) + " -I " + tmpFile1 + " -o " + table + regionStr + 
-			" --disable_auto_index_creation_and_locking_when_reading_rods" + indelStr + " -knownSites " + knownSite
+		var cmdStr = 
+		{
+			if (config.getUseGATK4)
+			{
+				"gatk --java-options " + MemString + " BaseRecalibrator -R " + FilesManager.getRefFilePath(config) + " -I " + 
+					tmpFile1 + " -O " + table + regionStr + " -known-sites " + knownSite
+			}
+			else
+			{
+				"java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + "GenomeAnalysisTK.jar -T BaseRecalibrator -nct " + 
+				config.getNumThreads() + " -R " + FileManager.getRefFilePath(config) + " -I " + tmpFile1 + " -o " + table + regionStr + 
+				" --disable_auto_index_creation_and_locking_when_reading_rods" + indelStr + " -knownSites " + knownSite
+			}
+		}
 		LogWriter.dbgLog("vcf/region_" + chrRegion, "6\t" + cmdStr, config)
 		var cmdRes = cmdStr.!
 
 		if (config.doPrintReads)
 		{
-			cmdStr = "java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + "GenomeAnalysisTK.jar -T PrintReads -R " + 
-				FileManager.getRefFilePath(config) + " -I " + tmpFile1 + " -o " + tmpFile2 + " -BQSR " + table + regionStr 
+			// Print reads
+			cmdStr = {
+				if (config.getUseGATK4)
+				{
+					"gatk --java-options " + MemString + " ApplyBQSR -R " + FilesManager.getRefFilePath(config) + " -I " + tmpFile1 + " -O " + tmpFile2 + 
+						" -bqsr " + table + regionStr
+				}
+				else
+				{
+					"java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + "GenomeAnalysisTK.jar -T PrintReads -R " + 
+						FileManager.getRefFilePath(config) + " -I " + tmpFile1 + " -o " + tmpFile2 + " -BQSR " + table + regionStr
+				}
+			}
+		
 			LogWriter.dbgLog("vcf/region_" + chrRegion, "7\t" + cmdStr, config)
 			cmdRes += cmdStr.!
 			// Hamid - Save output of baseQualityScoreRecalibration
@@ -936,9 +959,22 @@ object SparkGA1
 		val standemit = if (config.getSEC == "0") " " else (" -stand_emit_conf " + config.getSEC)
 		
 		// Haplotype caller
-		var cmdStr = "java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + "GenomeAnalysisTK.jar -T HaplotypeCaller -nct " + 
-			config.getNumThreads() + " -R " + FileManager.getRefFilePath(config) + " -I " + tmpFile2 + bqsrStr + " --genotyping_mode DISCOVERY -o " + snps + 
-			standconf + standemit + regionStr + " --no_cmdline_in_header --disable_auto_index_creation_and_locking_when_reading_rods"
+		var cmdStr = 
+		{
+			if (config.getUseGATK4)
+			{
+				"gatk --java-options " + MemString + " HaplotypeCaller -R " + FilesManager.getRefFilePath(config) + 
+					" -I " + tmpFile2 + " -O " + snps + regionStr
+			}
+			else
+			{
+				"java " + MemString + " " + config.getGATKopts + " -jar " + toolsFolder + gatkUnzippedFolder + "/" + gatkFolder + 
+					"/GenomeAnalysisTK.jar -T HaplotypeCaller -nct "  + config.getNumThreads + 
+					" -R " + FileManager.getRefFilePath(config) + 
+					" -I " + tmpFile2 + bqsrStr + " --genotyping_mode DISCOVERY -o " + snps + standconf + standemit + 
+					regionStr + " --no_cmdline_in_header --disable_auto_index_creation_and_locking_when_reading_rods"
+			}
+		}					
 		LogWriter.dbgLog("vcf/region_" + chrRegion, "8\t" + cmdStr, config)
 		var cmdRes = cmdStr.!
 		
