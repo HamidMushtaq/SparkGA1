@@ -902,7 +902,7 @@ object SparkGA1
 		{
 			if (config.getUseGATK4)
 			{
-				"gatk --java-options " + MemString + " BaseRecalibrator -R " + FilesManager.getRefFilePath(config) + " -I " + 
+				"gatk --java-options " + MemString + " BaseRecalibrator -R " + FileManager.getRefFilePath(config) + " -I " + 
 					tmpFile1 + " -O " + table + regionStr + " -known-sites " + knownSite
 			}
 			else
@@ -912,7 +912,7 @@ object SparkGA1
 				" --disable_auto_index_creation_and_locking_when_reading_rods" + indelStr + " -knownSites " + knownSite
 			}
 		}
-		LogWriter.dbgLog("vcf/region_" + chrRegion, "6\t" + cmdStr, config)
+		LogWriter.dbgLog("vcf/region_" + chrRegion, "6\t|" + config.getUseGATK4 + "|" + cmdStr, config)
 		var cmdRes = cmdStr.!
 
 		if (config.doPrintReads)
@@ -921,7 +921,7 @@ object SparkGA1
 			cmdStr = {
 				if (config.getUseGATK4)
 				{
-					"gatk --java-options " + MemString + " ApplyBQSR -R " + FilesManager.getRefFilePath(config) + " -I " + tmpFile1 + " -O " + tmpFile2 + 
+					"gatk --java-options " + MemString + " ApplyBQSR -R " + FileManager.getRefFilePath(config) + " -I " + tmpFile1 + " -O " + tmpFile2 + 
 						" -bqsr " + table + regionStr
 				}
 				else
@@ -931,7 +931,7 @@ object SparkGA1
 				}
 			}
 		
-			LogWriter.dbgLog("vcf/region_" + chrRegion, "7\t" + cmdStr, config)
+			LogWriter.dbgLog("vcf/region_" + chrRegion, "7\t|" + config.getUseGATK4 + "|" + cmdStr, config)
 			cmdRes += cmdStr.!
 			// Hamid - Save output of baseQualityScoreRecalibration
 			if (saveAllStages)
@@ -963,7 +963,7 @@ object SparkGA1
 		{
 			if (config.getUseGATK4)
 			{
-				"gatk --java-options " + MemString + " HaplotypeCaller -R " + FilesManager.getRefFilePath(config) + 
+				"gatk --java-options " + MemString + " HaplotypeCaller -R " + FileManager.getRefFilePath(config) + 
 					" -I " + tmpFile2 + " -O " + snps + regionStr
 			}
 			else
@@ -975,7 +975,7 @@ object SparkGA1
 					regionStr + " --no_cmdline_in_header --disable_auto_index_creation_and_locking_when_reading_rods"
 			}
 		}					
-		LogWriter.dbgLog("vcf/region_" + chrRegion, "8\t" + cmdStr, config)
+		LogWriter.dbgLog("vcf/region_" + chrRegion, "8\t|" + config.getUseGATK4 + "|" + cmdStr, config)
 		var cmdRes = cmdStr.!
 		
 		// Delete temporary files

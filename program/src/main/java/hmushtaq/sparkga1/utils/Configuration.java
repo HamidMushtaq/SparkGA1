@@ -420,6 +420,7 @@ public class Configuration implements Serializable
 		System.out.println("chunkerGroupSize:\t|" + chunkerGroupSize + "|");
 		System.out.println("doIndelRealignment:\t|" + performIndelRealignment + "|");
 		System.out.println("doPrintReads:\t|" + performPrintReads + "|");
+		System.out.println("useGATK4:\t|" + getUseGATK4() + "|");
 		for (String key : chrNameMap.keySet()) {
 			System.out.println("\tChromosome " + key + " -> " + chrNameMap.get(key)); 
 		}
