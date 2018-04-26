@@ -20,9 +20,13 @@
 package hmushtaq.sparkga1.utils
 
 import java.io._
+import java.nio.channels.FileChannel
+import java.nio.channels.FileLock
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
+
+import org.apache.commons.io.FileUtils
 
 /**
  *
@@ -30,6 +34,40 @@ import java.util.Calendar
  */
 object FileManager
 {
+	def deleteLockDirectory(dire:String, x:String, config:Configuration):Int={
+		val d = new File(dire)
+		
+		if ((config.getMode!="local") && (dire == "/tmp/")){
+			LogWriter.dbgLog("star/" + x, "Will not delete the /tmp folder! Exiting..", config)
+            return -1
+		}
+			
+		
+		if (d.exists && d.isDirectory) 
+		{
+			FileUtils.deleteDirectory(d)
+			LogWriter.dbgLog("star/" + x, "Directory " + dire + " deleted!", config)
+			return 0
+		} 
+		else{
+			LogWriter.dbgLog("star/" + x, "Directory " + dire + " doesn't exist!", config)
+			return 0
+		}
+	}
+
+	def getFileLock(fChannel: FileChannel, x:String, config:Configuration):FileLock = {
+        var lock = fChannel.tryLock()
+        var i = 0
+        while(lock==null){
+            if(i%30==0)
+                LogWriter.dbgLog("star/" + x, "*\tHave waited for lock for " + i*30 +"s.", config)
+			Thread.sleep(1000)
+			lock = fChannel.tryLock()
+            i+=1
+		}
+        return lock
+	}
+
 	def getInputFileNames(dir: String, config: Configuration) : Array[String] = 
 	{
 		val mode = config.getMode
@@ -88,6 +126,19 @@ object FileManager
 	{
 		return if (config.getMode() == "local") config.getRefPath() else 
 			config.getSfFolder() + getFileNameFromPath(config.getRefPath())
+	}
+
+    //saiyi
+	def getRefFileDire(config: Configuration) : String = 
+	{
+		var refDire = " "
+		if (config.getMode() == "local") 
+		    {
+				refDire = config.getRefPath().substring(0, config.getRefPath().lastIndexOf('/') + 1) 
+			}
+		else 
+			refDire = config.getSfFolder()
+		return refDire
 	}
 
 	def getSnpFilePath(config: Configuration) : String = 
@@ -187,6 +238,35 @@ object FileManager
 		hdfsManager.downloadIfRequired(refFileName + ".fai", refFolder, config.getSfFolder)
 		hdfsManager.downloadIfRequired(refFileName + ".pac", refFolder, config.getSfFolder)
 		hdfsManager.downloadIfRequired(refFileName + ".sa", refFolder, config.getSfFolder)
+	}
+
+	def downloadSTARFiles(config: Configuration) {
+
+		val refFolder = getDirFromPath(config.getRefPath())             //hdfs path
+		val refFileName = getFileNameFromPath(config.getRefPath())
+		val hdfsManager = new HDFSManager
+
+		if (!(new File(config.getSfFolder).exists)) {
+			new File(config.getSfFolder()).mkdirs()
+		}
+		
+		if (!(new File(config.getSfFolder+"STAR_ref/").exists)) {
+			new File(config.getSfFolder()+"STAR_ref/").mkdirs()
+		}
+		
+		hdfsManager.downloadIfRequired(refFileName, refFolder, config.getSfFolder);   //.fasta
+		hdfsManager.downloadIfRequired(refFileName.replace(".fasta", ".dict"), refFolder, config.getSfFolder)  //.dict
+		hdfsManager.downloadIfRequired(refFileName + ".fai", refFolder, config.getSfFolder)    //.fai
+
+		hdfsManager.downloadIfRequired("chrLength.txt", refFolder+"STAR_ref/", config.getSfFolder()+"STAR_ref/")
+		hdfsManager.downloadIfRequired("chrName.txt", refFolder+"STAR_ref/", config.getSfFolder()+"STAR_ref/")
+		hdfsManager.downloadIfRequired("chrNameLength.txt", refFolder+"STAR_ref/", config.getSfFolder()+"STAR_ref/")
+		hdfsManager.downloadIfRequired("chrStart.txt", refFolder+"STAR_ref/", config.getSfFolder()+"STAR_ref/")
+		hdfsManager.downloadIfRequired("Genome", refFolder+"STAR_ref/", config.getSfFolder()+"STAR_ref/")
+		hdfsManager.downloadIfRequired("genomeParameters.txt", refFolder+"STAR_ref/", config.getSfFolder()+"STAR_ref/")
+        hdfsManager.downloadIfRequired("SA", refFolder+"STAR_ref/", config.getSfFolder()+"STAR_ref/")
+		hdfsManager.downloadIfRequired("SAindex", refFolder+"STAR_ref/", config.getSfFolder()+"STAR_ref/")
+
 	}
 
 	def downloadVCFRefFiles(x: String, config: Configuration)

@@ -48,6 +48,8 @@ public class Configuration implements Serializable
 	private String tmpFolder;
 	private String sfFolder;
 	private String numTasks;
+	private String numInstance;
+	private String numNodes;
 	private String numThreads;
 	private String ignoreList;
 	private String numRegions;
@@ -143,6 +145,9 @@ public class Configuration implements Serializable
 			{
 				System.out.println("Parsing dictionary file (cluster mode) ");
 				dict = dictParser.parse(getFileNameFromPath(refPath).replace(".fasta", ".dict"));
+
+				numInstance = document.getElementsByTagName("numInstances" + part).item(0).getTextContent();
+				numNodes = document.getElementsByTagName("numNodes").item(0).getTextContent();
 			}
 			System.out.println("\n1.Hash code of dict = " + dict.hashCode() + "\n");
 			chrLenArray = dictParser.getChrLenArray();
@@ -222,6 +227,14 @@ public class Configuration implements Serializable
 	public String getMode()
 	{
 		return mode;
+	}
+
+	public String getNumInstance(){
+		return numInstance;
+	}
+
+	public String getNumNodes(){
+		return numNodes;
 	}
 	
 	public String getRefPath()
