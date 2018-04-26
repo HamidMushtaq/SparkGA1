@@ -87,6 +87,8 @@ Three example configuration files are given in the `config `folder, namely `loca
 8. **toolsFolder** - This folder contains all the tools for executing the GATK pipeline, such as bwa, Markduplicates.jar and GenomeAnalysiTK.jar etc. This folder would always be in a local directory, regardless of the mode. For cluster modes, the python script `runPart.py` would send the programs to each executor, using `--files` when executing `spark-submit`.
 9. **tmpFolder** - This folder is the one used for storing temporary files. This folder would be in a local directory. For cluster modes, this folder would be present on each node.
 10. **sfFolder** - This is the folder, where all the reference and index files are stored. This folder would be in a local directory. For cluster modes, this folder would be present on each node. If `./` is used, SparkGA would download the reference files to `./`, which is executor's current directory. This means that those files would also get deleted at the end of execution. To permanently place these files on the local directories of nodes, either use the filesDownloader utility or manually copy them to each node.
+If running the **RNA pipeline in cluster modes**, do not use "./". Instead, specify a directory on each node, e.g. `/tmp/sparkga/ref`.
+
 11. **rgString** - The read group string given to the bwa program
 12. **extraBWAParams** - Any extra parameters given to the bwa program besides the read group string, input files, reference fasta file name and number of threads. For example, for paired-ended reads, you must put `-p`, as the chunker utility would always create interleaved chunks for paired-ended FASTQ files.
 13. **gatkOpts** - Any additional parameters given when running jar files. For example, `-XX:+AggressiveOpts`.
