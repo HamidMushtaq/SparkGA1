@@ -26,7 +26,6 @@ import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
-import org.apache.commons.io.FileUtils
 
 /**
  *
@@ -34,33 +33,12 @@ import org.apache.commons.io.FileUtils
  */
 object FileManager
 {
-	def deleteLockDirectory(dire:String, x:String, config:Configuration):Int={
-		val d = new File(dire)
-		
-		if ((config.getMode!="local") && (dire == "/tmp/")){
-			LogWriter.dbgLog("star/" + x, "Will not delete the /tmp folder! Exiting..", config)
-            return -1
-		}
-			
-		
-		if (d.exists && d.isDirectory) 
-		{
-			FileUtils.deleteDirectory(d)
-			LogWriter.dbgLog("star/" + x, "Directory " + dire + " deleted!", config)
-			return 0
-		} 
-		else{
-			LogWriter.dbgLog("star/" + x, "Directory " + dire + " doesn't exist!", config)
-			return 0
-		}
-	}
-
-	def getFileLock(fChannel: FileChannel, x:String, config:Configuration):FileLock = {
+	def getFileLock(fChannel: FileChannel, logName:String, x:String, config:Configuration):FileLock = {
         var lock = fChannel.tryLock()
         var i = 0
         while(lock==null){
             if(i%30==0)
-                LogWriter.dbgLog("star/" + x, "*\tHave waited for lock for " + i*30 +"s.", config)
+                LogWriter.dbgLog("star/" + logName, "*\tThread "+ x + ": "+"Have waited for lock for " + i*30 +"s.", config)
 			Thread.sleep(1000)
 			lock = fChannel.tryLock()
             i+=1

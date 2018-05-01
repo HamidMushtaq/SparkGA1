@@ -43,6 +43,7 @@ import scala.util.Random
 
 import utils._
 
+import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.spark.storage.StorageLevel._
 import org.apache.spark.HashPartitioner
@@ -63,21 +64,61 @@ object SparkGA1
 	final val sizeBasedLBScheduling = true
 	final val sizeBasedVCScheduling = true
 	//////////////////////////////////////////////////////////////////////////////
+	def deleteLockDirectory(dire:String, x:String, config:Configuration):Int={
+		val hdfsManager = new HDFSManager
+		val d = new File(dire)
+		var logName = ""
+		 if (config.getMode != "local"){
+			 val IP = InetAddress.getLocalHost().toString()
+			 val node = IP.substring(0, IP.indexOf('/'))
+			 logName=node+"_deleteLock.log"
+			 hdfsManager.createIfRequired(config.getOutputFolder + "log/star/" + logName)
+		 }
+		 else{
+			 logName="deleteLock.log"
+		     FileManager.makeDirIfRequired(config.getOutputFolder + "log/star", config)
+		 }
+		
+		if ((config.getMode!="local") && (dire == "/tmp/")){
+			LogWriter.dbgLog("star/" + logName, "Thread "+ x + ": "+"Will not delete the /tmp folder! Exiting..", config)
+            return -1
+		}
+			
+		this.synchronized{
+            if (d.exists && d.isDirectory) 
+		    {
+			    FileUtils.deleteDirectory(d)
+			    LogWriter.dbgLog("star/" + logName, "Thread "+ x + ": "+"Directory " + dire + " deleted!", config)
+
+		    } 
+		    else{
+			    LogWriter.dbgLog("star/" + logName, "Thread "+ x + ": "+"Directory " + dire + " doesn't exist!", config)
+
+		    }
+		}
+		return 0
+		
+	}
 	
 	def starGenomeLoad(passNo: String, genomeLoad: String, x:String, config: Configuration):String = {
 		val hdfsManager = new HDFSManager
         var fileName = ""
 		var genomeDire=""
 		var genomeLockDirectory = ""
+		var logName = ""
 
 		 if (config.getMode != "local"){
-			hdfsManager.create(config.getOutputFolder + "log/star/" + x)
+			 val IP = InetAddress.getLocalHost().toString()
+			 val node = IP.substring(0, IP.indexOf('/'))
+			 logName=node+"_"+genomeLoad+passNo+".log"
+			hdfsManager.createIfRequired(config.getOutputFolder + "log/star/" + logName)
             genomeLockDirectory = "/tmp/starGenomeLock/"
 
 			if (!(new File(genomeLockDirectory).exists))
 				    new File(genomeLockDirectory).mkdirs()
 		    }
 		 else{
+			 logName=genomeLoad+passNo+".log"
 			    FileManager.makeDirIfRequired(config.getOutputFolder + "log/star", config)
 			    genomeLockDirectory = config.getTmpFolder+"starGenomeLock/"
 			    if(!(new File(genomeLockDirectory).exists)){
@@ -103,36 +144,41 @@ object SparkGA1
 		var lock:FileLock = null
 
 		/////////////////////////////mutex part/////////////////////////////////////////
-		try{
-            lock = FileManager.getFileLock(fChannel, x, config)
+		this.synchronized{
+            try{
+            lock = FileManager.getFileLock(fChannel, logName, x, config)
 		    val byteBuffer = ByteBuffer.allocate(2)
 
 		   //job has been done
 		    if(fChannel.read(byteBuffer)>0)  {
-               LogWriter.dbgLog("star/" + x, "*\tThe genome job: "+ genomeLoad + "in pass "+passNo+" has been done. Skipping.", config)
+               LogWriter.dbgLog("star/" + logName, "*\tThread "+ x + ": "+"The genome job: "+ genomeLoad + " in pass "+passNo+" has been done. Skipping.", config)
 		    }
 		    else{
-			    LogWriter.dbgLog("star/" + x, "*\tStarting the genome job: "+ genomeLoad + " in pass "+passNo+".", config)
+			    LogWriter.dbgLog("star/" + logName, "*\tThread "+ x + ": "+"Starting the genome job: "+ genomeLoad + " in pass "+passNo+".", config)
                 val progName = FileManager.getToolsDirPath(config) + "STAR "
 		        val tmpDir = config.getTmpFolder
-			    val outFilePrefix = tmpDir+x+"_"
+			    val outFilePrefix = tmpDir+logName+"_"
 		
 			    val command_str = progName + "--genomeDir "  + genomeDire + " --outFileNamePrefix " + outFilePrefix + " --genomeLoad " + genomeLoad
+				//saiyi
+				//val command_str = "ls"
 
-	            LogWriter.dbgLog("star/" + x, "*\tStarting the genome job: "+ genomeLoad + " in pass "+passNo+" -> " + command_str, config)
+	            LogWriter.dbgLog("star/" + logName, "*\tThread "+ x + ": "+"Starting the genome job: "+ genomeLoad + " in pass "+passNo+" -> " + command_str, config)
 		
 			    var cmd_res = command_str.!
 
 			    byteBuffer.putChar('y').flip()
 			    fChannel.write(byteBuffer)
 			    fChannel.force(false)
-				LogWriter.dbgLog("star/" + x, "*\tFinished the genome job: "+ genomeLoad + " in pass "+passNo+".", config)
+				LogWriter.dbgLog("star/" + logName, "*\tThread "+ x + ": "+"Finished the genome job: "+ genomeLoad + " in pass "+passNo+".", config)
 		    }
 		}finally{
             if(lock!=null) lock.release()
 
 		    randAcFile.close()
 		}
+		}
+		
 		
         return genomeLockDirectory
         
@@ -147,6 +193,7 @@ object SparkGA1
 		val hdfsManager = new HDFSManager
 		//val downloadRef = config.getSfFolder == "./"
 		val downloadRef = true //TODO: add case of downloading in advance
+		//TODO: add deleteSfFolder
 
 		if (config.getMode != "local")
 		{
@@ -1275,17 +1322,18 @@ object SparkGA1
 				inputArray.foreach(println)
 			
 				// Give chunks to bwa instances
-				val inputData = sc.parallelize(inputArray, inputArray.size) 
-				
-				//val inputData = sc.parallelize(inputArray, 4) //4*1
 			
 				// Run instances of bwa and get the output as Key Value pairs
 				// <(chr, reg), fname>
 
-				var noExecutor = 0
-				val noInstance = config.getNumInstance.toInt
+				
+				val noTask = config.getNumTasks.toInt
+				var noPartition = noTask
+
                 if(config.getMode!="local"){
-				    noExecutor = sc.getExecutorMemoryStatus.size - 1
+					val noInstance = config.getNumInstance.toInt
+					noPartition = noTask*noInstance
+				    var noExecutor = sc.getExecutorMemoryStatus.size - 1
 				    LogWriter.statusLog("Before waiting: ", "NO of executors:"+noExecutor, config)
 
 				    while((sc.getExecutorMemoryStatus.size - 1)!=noInstance) {
@@ -1296,50 +1344,45 @@ object SparkGA1
 				    LogWriter.statusLog("after waiting: ", "NO of executors:"+noExecutor, config)
                 }
 
-				var lockDireOnClusterArray = new Array[String](noExecutor)
-				var lockDireOnCluster = ""
-				var lockDireLocal = ""
-				if(config.getMode!="local"){
-					val loaderArray = new Array[String](noExecutor)
-				    for(i <- 0 to (noExecutor-1)){
-                        loaderArray(i)="loader"+i+".txt"
-				    }
-			        val loaderList = sc.parallelize(loaderArray, loaderArray.size)
-				    lockDireOnClusterArray = loaderList.map(x => starGenomeLoad("1", "LoadAndExit", x, config)).collect //load 1st genome
-				}
-				else{
-                    lockDireLocal=starGenomeLoad("1", "LoadAndExit", "loader.txt", config)
-				}
-				    
+				val inputData = sc.parallelize(inputArray, noPartition)
 
-				val testStarOutput = inputData.map(x => starRun(x, bcConfig.value)).collect //pass 1 align
-
-				if(config.getMode!="local"){
-					val loaderArray = new Array[String](noExecutor)
-				    for(i <- 0 to (noExecutor-1)){
-                        loaderArray(i)="remover"+i+".txt"
-				    }
-			        val loaderList = sc.parallelize(loaderArray, loaderArray.size)					
-				    lockDireOnClusterArray = loaderList.map(x => starGenomeLoad("1", "Remove", x, config)).collect //remove 1st genome
+				val testStarOutput = inputData.mapPartitionsWithIndex{ (index, iter) =>
+				    if(iter.isEmpty){
+						Iterator[String]()
+					}
+					else{
+                        starGenomeLoad("1", "LoadAndExit", index.toString, config)
+						iter.map(x=>starRun(x, bcConfig.value))
+						//iter
+					}
 				}
-				else{
-                    lockDireLocal = starGenomeLoad("1", "Remove", "loader.txt", config)
+				testStarOutput.collect
+                
+				//may optimize with smaller inputData and use map
+				val testAlign1Remove = inputData.mapPartitionsWithIndex{ (index, iter) =>
+				    if(iter.isEmpty){
+						Iterator[String]()
+					}
+					else{
+						val directory=starGenomeLoad("1", "Remove", index.toString, config)
+						var res = for (e <- iter ) yield directory
+                        res
+					}
 				}
 
 
-
-				if(config.getMode!="local"){
-					val loaderArray = new Array[String](noExecutor)
-				    for(i <- 0 to (noExecutor-1)){
-                        loaderArray(i)="deleter"+i+".txt"
-				    }
-			        val loaderList = sc.parallelize(loaderArray, loaderArray.size)	
-					lockDireOnCluster = lockDireOnClusterArray(0)
-					loaderList.map(x => FileManager.deleteLockDirectory(lockDireOnCluster,x,config)).collect
+				val lockDirArray=testAlign1Remove.collect
+				val lockDir=lockDirArray(0)
+				val testDelete = inputData.mapPartitionsWithIndex{ (index, iter) =>
+				    if(iter.isEmpty){
+						Iterator[String]()
+					}
+					else{
+                        deleteLockDirectory(lockDir,index.toString,config) 
+						iter
+					}
 				}
-				else{
-					if(new File(lockDireLocal).exists) FileManager.deleteLockDirectory(lockDireLocal, "loader.txt", config)
-				}
+				testDelete.collect
 				    
 
 				

@@ -64,6 +64,23 @@ public class HDFSManager
 			ex.printStackTrace();
 		}
 	}
+
+	public void createIfRequired(String fname) throws IOException{
+		try
+		{
+			Path filenamePath = new Path(fname);  
+		
+			if (fs.exists(filenamePath))
+				return;
+				
+			FSDataOutputStream fout = fs.create(filenamePath);
+			fout.close();
+		}
+		catch (IOException ex) 
+		{
+			ex.printStackTrace();
+		}
+	}
 	
 	public PrintWriter open(String fname) throws IOException
 	{
