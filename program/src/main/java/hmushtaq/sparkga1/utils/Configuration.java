@@ -47,7 +47,11 @@ public class Configuration implements Serializable
 	private String gatkOpts;
 	private String tmpFolder;
 	private String sfFolder;
+	private String starRefFolder;
+	private String starLocalFolder;
 	private String numTasks;
+	private String numInstance;
+	private String numNodes;
 	private String numThreads;
 	private String ignoreList;
 	private String numRegions;
@@ -95,6 +99,8 @@ public class Configuration implements Serializable
 			gatkOpts = emptyIfTagDoesntExist(document, "gatkOpts");
 			tmpFolder = correctFolderName(document.getElementsByTagName("tmpFolder").item(0).getTextContent());
 			sfFolder = correctFolderName(emptyIfTagDoesntExist(document, "sfFolder"));
+			starRefFolder = correctFolderName(document.getElementsByTagName("STARRefFolder").item(0).getTextContent()); 
+			starLocalFolder = correctFolderName(emptyIfTagDoesntExist(document, "STARLocalFolder"));
 			ignoreList = emptyIfTagDoesntExist(document, "ignoreList");
 			//////////////////////////////////////////////////////////////////
 			ignoreListSet = new HashSet<String>();
@@ -143,6 +149,9 @@ public class Configuration implements Serializable
 			{
 				System.out.println("Parsing dictionary file (cluster mode) ");
 				dict = dictParser.parse(getFileNameFromPath(refPath).replace(".fasta", ".dict"));
+
+				numInstance = document.getElementsByTagName("numInstances" + part).item(0).getTextContent();
+				numNodes = document.getElementsByTagName("numNodes").item(0).getTextContent();
 			}
 			System.out.println("\n1.Hash code of dict = " + dict.hashCode() + "\n");
 			chrLenArray = dictParser.getChrLenArray();
@@ -223,10 +232,22 @@ public class Configuration implements Serializable
 	{
 		return mode;
 	}
+
+	public String getNumInstance(){
+		return numInstance;
+	}
+
+	public String getNumNodes(){
+		return numNodes;
+	}
 	
 	public String getRefPath()
 	{
 		return refPath;
+	}
+
+	public String getStarRefFolder(){
+		return starRefFolder;
 	}
 	
 	public String getDictPath()
@@ -295,6 +316,9 @@ public class Configuration implements Serializable
 	public String getSfFolder()
 	{
 		return sfFolder;
+	}
+	public String getStarLocalFolder(){
+		return starLocalFolder;
 	}
 	
 	public String getNumTasks()
@@ -399,6 +423,8 @@ public class Configuration implements Serializable
 		System.out.println("outputFolder:\t|" + outputFolder + "|");
 		System.out.println("tmpFolder:\t|" + tmpFolder + "|");
 		System.out.println("sfFolder:\t|" + sfFolder + "|");
+		System.out.println("starRefFolder\t|"+starRefFolder+ "|");
+		System.out.println("starLocalFolder:\t|" + starLocalFolder + "|");
 		System.out.println("ignoreList:\t|" + ignoreList + "|");
 		System.out.println("numTasks:\t|" + numTasks + "|");
 		System.out.println("numThreads:\t|" + numThreads + "|");

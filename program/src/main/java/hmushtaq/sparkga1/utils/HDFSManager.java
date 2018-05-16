@@ -64,6 +64,23 @@ public class HDFSManager
 			ex.printStackTrace();
 		}
 	}
+
+	public void createIfRequired(String fname) throws IOException{
+		try
+		{
+			Path filenamePath = new Path(fname);  
+		
+			if (fs.exists(filenamePath))
+				return;
+				
+			FSDataOutputStream fout = fs.create(filenamePath);
+			fout.close();
+		}
+		catch (IOException ex) 
+		{
+			ex.printStackTrace();
+		}
+	}
 	
 	public PrintWriter open(String fname) throws IOException
 	{
@@ -273,7 +290,7 @@ public class HDFSManager
 	public int download(String fileName, String hdfsFolder, String localFolder, boolean overwrite)
 	{
 		try
-		{	
+		{
 			File f = new File(localFolder + fileName);
 			if (f.exists() && !overwrite)
 				f.delete();
@@ -341,6 +358,17 @@ public class HDFSManager
 		{	
 			fs.copyFromLocalFile(delSrc, true, new Path(localFolder + fileName), 
 				new Path(hdfsFolder + fileName));
+		}
+		catch (Exception ex) 
+		{
+			ex.printStackTrace();
+		}
+	}
+
+	public void uploadFolder(String localFolder, String hdfsFolder, boolean delSrc){
+		try
+		{	
+			fs.copyFromLocalFile(delSrc, true, new Path(localFolder), new Path(hdfsFolder));
 		}
 		catch (Exception ex) 
 		{

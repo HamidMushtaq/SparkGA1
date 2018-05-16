@@ -20,9 +20,14 @@
 package hmushtaq.sparkga1.utils
 
 import java.io._
+import java.nio.channels.FileChannel
+import java.nio.channels.FileLock
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
+
+import org.apache.commons.io.FileUtils
+
 
 /**
  *
@@ -30,6 +35,19 @@ import java.util.Calendar
  */
 object FileManager
 {
+	def getFileLock(fChannel: FileChannel, logName:String, x:String, config:Configuration):FileLock = {
+        var lock = fChannel.tryLock()
+        var i = 0
+        while(lock==null){
+            if(i%5==0)
+                LogWriter.dbgLog("star/" + logName, "*\tThread "+ x + ": "+"Have waited for lock for " + i*5 +"s.", config)
+			Thread.sleep(1000)
+			lock = fChannel.tryLock()
+            i+=1
+		}
+        return lock
+	}
+
 	def getInputFileNames(dir: String, config: Configuration) : Array[String] = 
 	{
 		val mode = config.getMode
@@ -88,6 +106,33 @@ object FileManager
 	{
 		return if (config.getMode() == "local") config.getRefPath() else 
 			config.getSfFolder() + getFileNameFromPath(config.getRefPath())
+	}
+
+    //saiyi
+	def getRefFileDire(config: Configuration) : String = 
+	{
+		var refDire = ""
+		if (config.getMode() == "local") 
+		    {
+				refDire = config.getRefPath().substring(0, config.getRefPath().lastIndexOf('/') + 1) 
+			}
+		else 
+			refDire = config.getSfFolder()
+		return refDire
+	}
+	def getStarIndexLocalDire(passNo:String, config:Configuration) : String = {
+        var indexDir = ""
+		if (config.getMode() == "local") {
+			if(passNo=="1")
+			    indexDir = config.getStarRefFolder() 
+			else
+			    indexDir = config.getTmpFolder()+"STAR_index"+passNo+"/"
+		}
+		else{ //cluster mode
+			indexDir = config.getStarLocalFolder()+"STAR_index"+passNo+"/"
+		}
+		
+		return indexDir
 	}
 
 	def getSnpFilePath(config: Configuration) : String = 
@@ -170,6 +215,16 @@ object FileManager
 		}			
 	}
 
+	def cleanAndMakeLocalDir(dir:String, config: Configuration){
+        val file = new File(dir)
+		if (!file.exists())
+			file.mkdir()
+		else if(file.exists()){
+			FileUtils.deleteDirectory(file)
+			file.mkdir()
+		}
+	}
+
 	def downloadBWAFiles(x: String, config: Configuration)
 	{
 		val refFolder = getDirFromPath(config.getRefPath())
@@ -187,6 +242,60 @@ object FileManager
 		hdfsManager.downloadIfRequired(refFileName + ".fai", refFolder, config.getSfFolder)
 		hdfsManager.downloadIfRequired(refFileName + ".pac", refFolder, config.getSfFolder)
 		hdfsManager.downloadIfRequired(refFileName + ".sa", refFolder, config.getSfFolder)
+	}
+
+	def downloadRNARef(config: Configuration) {
+
+		val refFolder = getDirFromPath(config.getRefPath())             //hdfs path
+		val refFileName = getFileNameFromPath(config.getRefPath())
+		val hdfsManager = new HDFSManager
+
+		if (!(new File(config.getSfFolder).exists)) {
+			new File(config.getSfFolder()).mkdirs()
+		}
+		
+		hdfsManager.downloadIfRequired(refFileName, refFolder, config.getSfFolder);   //.fasta
+		hdfsManager.downloadIfRequired(refFileName.replace(".fasta", ".dict"), refFolder, config.getSfFolder)  //.dict
+		hdfsManager.downloadIfRequired(refFileName + ".fai", refFolder, config.getSfFolder)    //.fai
+
+	}
+
+	def downloadSTARIndex(passNo:String, config:Configuration) :String = {
+		var indexFolderHDFS = config.getStarRefFolder()                            //hdfs path 
+		val hdfsManager = new HDFSManager
+		val localIndexFolder = config.getStarLocalFolder()+"STAR_index"+passNo+"/" //local path
+
+		if(passNo=="2"){
+			indexFolderHDFS = config.getStarRefFolder() + "STAR_index"+passNo+"/"   //hdfs path of new index
+		}
+
+		if (!(new File(localIndexFolder).exists)) {
+			new File(localIndexFolder).mkdirs()
+		}
+
+		hdfsManager.downloadIfRequired("chrLength.txt",        indexFolderHDFS, localIndexFolder)
+		hdfsManager.downloadIfRequired("chrName.txt",          indexFolderHDFS, localIndexFolder)
+		hdfsManager.downloadIfRequired("chrNameLength.txt",    indexFolderHDFS, localIndexFolder)
+		hdfsManager.downloadIfRequired("chrStart.txt",         indexFolderHDFS, localIndexFolder)
+		hdfsManager.downloadIfRequired("Genome",               indexFolderHDFS, localIndexFolder)
+		hdfsManager.downloadIfRequired("genomeParameters.txt", indexFolderHDFS, localIndexFolder)
+        hdfsManager.downloadIfRequired("SA",                   indexFolderHDFS, localIndexFolder)
+		hdfsManager.downloadIfRequired("SAindex",              indexFolderHDFS, localIndexFolder)
+
+		return localIndexFolder
+
+	}
+
+	def deleteSTARIndex(passNo:String, config : Configuration) {
+		
+			if(passNo=="1" && config.getMode()=="local")
+			    return
+			else{
+				val d = new File(getStarIndexLocalDire(passNo, config))
+				this.synchronized{
+                    FileUtils.deleteDirectory(d)
+				}
+			}
 	}
 
 	def downloadVCFRefFiles(x: String, config: Configuration)
