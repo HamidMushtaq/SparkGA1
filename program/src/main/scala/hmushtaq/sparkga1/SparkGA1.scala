@@ -64,7 +64,7 @@ object SparkGA1
 	final val sizeBasedLBScheduling = true
 	final val sizeBasedVCScheduling = true
 	//////////////////////////////////////////////////////////////////////////////
-	def deleteLockDirectory(dire:String, x:String, config:Configuration):Int={
+	def deleteStarLocalContent(dire:String, x:String, config:Configuration):Int={
 		val hdfsManager = new HDFSManager
 		val d = new File(dire)
 		var logName = ""
@@ -88,6 +88,7 @@ object SparkGA1
             if (d.exists && d.isDirectory) 
 		    {
 			    FileUtils.deleteDirectory(d)
+				FileManager.deleteSTARIndex("2", config)
 			    LogWriter.dbgLog("star/" + logName, "Thread "+ x + ": "+"Directory " + dire + " deleted!", config)
 
 		    } 
@@ -101,9 +102,10 @@ object SparkGA1
 	}
 	
 	def starGenomeLoad(passNo: String, genomeLoad: String, x:String, config: Configuration):String = {
+		
 		val hdfsManager = new HDFSManager
         var fileName = ""
-		var genomeDire=""
+		val genomeDire= FileManager.getStarIndexLocalDire(passNo, config)
 		var genomeLockDirectory = ""
 		var logName = ""
 
@@ -112,22 +114,23 @@ object SparkGA1
 			 val node = IP.substring(0, IP.indexOf('/'))
 			 logName=node+"_"+genomeLoad+passNo+".log"
 			hdfsManager.createIfRequired(config.getOutputFolder + "log/star/" + logName)
-            genomeLockDirectory = "/tmp/starGenomeLock/"
+            genomeLockDirectory = config.getStarLocalFolder()+"starGenomeLock/"
+
+			FileManager.downloadSTARIndex(passNo, config)
 
 			if (!(new File(genomeLockDirectory).exists))
 				    new File(genomeLockDirectory).mkdirs()
 		    }
 		 else{
-			 logName=genomeLoad+passNo+".log"
+			    logName=genomeLoad+passNo+".log"
 			    FileManager.makeDirIfRequired(config.getOutputFolder + "log/star", config)
 			    genomeLockDirectory = config.getTmpFolder+"starGenomeLock/"
 			    if(!(new File(genomeLockDirectory).exists)){
                     new File(genomeLockDirectory).mkdirs()
-			      }   
+			    }
 			}
         //e.g. lock1Load.txt
-		 if(passNo=="1") genomeDire = FileManager.getRefFileDire(config) + "STAR_ref/"
-			 else genomeDire = "TODO" //Later decide the pass 2 genome dir
+		
 		if(genomeLoad == "LoadAndKeep" || genomeLoad == "LoadAndExit" || genomeLoad == "LoadAndRemove" ){
              fileName = "lock" + passNo + "Load.txt"
 		}
@@ -191,9 +194,7 @@ object SparkGA1
 		var input_file = ""
 		val tmpDir = config.getTmpFolder
 		val hdfsManager = new HDFSManager
-		//val downloadRef = config.getSfFolder == "./"
-		val downloadRef = true //TODO: add case of downloading in advance
-		//TODO: add deleteSfFolder
+		val downloadRef = config.getSfFolder == "./"
 
 		if (config.getMode != "local")
 		{
@@ -204,8 +205,8 @@ object SparkGA1
 			
 			if (downloadRef && (config.getMode != "local"))
 			{
-				LogWriter.dbgLog("star/" + x, "*\tDownloading reference files for star if required.", config)
-				FileManager.downloadSTARFiles(config)
+				LogWriter.dbgLog("star/" + x, "*\tDownloading reference if required.", config)
+				FileManager.downloadRNARef(config)
 			}
 		}
 		else
@@ -263,7 +264,7 @@ object SparkGA1
 		val bufferSize = "30000000"
 		val genomeLoad = "LoadAndKeep"
 		// Example: STAR --genomeDir STAR_ref --runThreadN 8 --readFilesIn x.fq --outFileNamePrefix tmpDir/star1out/x_  (e.g. x_SJ.out.tab)
-		val command_str = progName + "--genomeDir "  + FileManager.getRefFileDire(config) + "STAR_ref/" + " --runThreadN " + nthreads.toString + 
+		val command_str = progName + "--genomeDir "  + FileManager.getStarIndexLocalDire("1", config) + " --runThreadN " + nthreads.toString + 
 			" --readFilesIn " + fqFileName + " --outFileNamePrefix " + outFilePrefix + " --limitIObufferSize " + bufferSize + " --genomeLoad " + genomeLoad
 		LogWriter.dbgLog("star/" + x, "1\tstar pass 1 alignment started, RGID = " + config.getRGID + " -> " + command_str, config)
 		
@@ -281,11 +282,160 @@ object SparkGA1
 		// val isBwaExist = Files.exists(Paths.get("bwa"))
 		LogWriter.dbgLog("star/" + x, "Is tab generated: " + isTabExist +" Path: " + outFilePrefix + "SJ.out.tab", config)
 		//LogWriter.dbgLog("star/" + x, "Is star genome exist: " + isGenomeThere +" command success? " + cmd_res, config)
+		if (config.getMode() != "local")
+		{
+			//local sj will be deleted
+			hdfsManager.upload(x + "_SJ.out.tab", config.getTmpFolder, config.getOutputFolder + "pass1SJ/", true)
+		}
 
-		//delete after the 2nd alignment
-		//saiyi new File(fqFileName).delete()
+		new File(fqFileName).delete()
 
 		return cmd_res
+
+	}
+
+	def starRun2(x: String, config: Configuration) : (Array[((Integer, Integer), (String, Long, Int, Int, String))]) = {
+
+		var input_file = ""
+		val tmpDir = config.getTmpFolder
+		val hdfsManager = new HDFSManager
+		val blockSize = 4096 * 1024; 
+
+		LogWriter.dbgLog("star/" + x, "0a\tStarting star pass2 alignment", config)
+
+		if (config.getMode != "local")
+		{
+			LogWriter.dbgLog("star/" + x, "0a\tDownloading input again from the HDFS", config)
+			hdfsManager.download(x + ".gz", config.getInputFolder, tmpDir, false)
+			input_file = tmpDir + x + ".gz"
+		}
+		else
+		{
+			input_file = config.getInputFolder + x + ".gz"
+		}
+
+		// unzip the input .gz file
+		var fqFileName = tmpDir + x
+		val unzipStr = "gunzip -c " + input_file
+		LogWriter.dbgLog("star/" + x, "0b\t" + unzipStr, config)
+		unzipStr #> new java.io.File(fqFileName) !;
+		if (config.getMode != "local")
+			new File(input_file).delete()
+
+		//Collect output log info. STAR log is in stdout
+		val stdErrorSb = new StringBuilder
+		val stdOutSb = new StringBuilder
+		val logger = ProcessLogger(
+			(o: String) => {
+				stdOutSb.append(o)
+				},
+			(e: String) => {stdErrorSb.append(e + '\n')}
+		)
+		
+
+		// run STAR align pass 2
+		val progName = FileManager.getToolsDirPath(config) + "STAR "
+		val outFilePrefix = tmpDir + x +"_p2_"   //e.g. 9.fq_p2_Aligned.out.sam
+		val nthreads = config.getNumThreads.toInt
+		val bufferSize = "30000000"
+		val genomeLoad = "LoadAndKeep"
+
+		val command_str = progName + "--genomeDir "  + FileManager.getStarIndexLocalDire("2", config) + " --runThreadN " + nthreads.toString + 
+			" --readFilesIn " + fqFileName + " --outFileNamePrefix " + outFilePrefix + " --limitIObufferSize " + bufferSize + " --genomeLoad " + genomeLoad
+		LogWriter.dbgLog("star/" + x, "1\tstar pass 2 alignment started, RGID = " + config.getRGID + " -> " + command_str, config)
+
+		var cmd_res = command_str.!
+		// Delete useless files
+		new File(outFilePrefix+"SJ.out.tab").delete()
+		new File(outFilePrefix+"Log.final.out").delete()
+		new File(outFilePrefix+"Log.out").delete()
+		new File(outFilePrefix+"Log.progress.out").delete()
+
+		var writerMap = new HashMap[(Integer, Integer), SamRegion]()
+		val samRegionsParser = new SamRegionsParser(x, writerMap, config)
+
+		val samLinesArray = FileManager.readWholeFile(outFilePrefix + "Aligned.out.sam", config).split('\n')
+
+		for(line <- samLinesArray){
+            samRegionsParser.append(line)
+		}
+
+		new File(fqFileName).delete()
+		new File(outFilePrefix+"Aligned.out.sam").delete()
+
+		FileManager.makeDirIfRequired(config.getOutputFolder + "samChunks", config)
+		FileManager.makeDirIfRequired(config.getOutputFolder + "starPos", config)
+
+		LogWriter.dbgLog("star/" + x, "2\tUploading SAM Files to the HDFS. reads = " + samRegionsParser.getNumOfReads + ", bad lines = " + samRegionsParser.getBadLines, config)
+		var currentNum = 1
+		var outStr = new StringBuilder
+		var dbgStr = new StringBuilder
+		var totalBytes = 0
+		// For positions
+		var posCurrentNum = 1
+		var posOutStr = new StringBuilder
+		var posTotalBytes = 0
+		val iWriterMap = writerMap.toMap // Might help with Garbage collection of the mutable HashMap.
+		val res = ArrayBuffer.empty[((Integer, Integer), (String, Long, Int, Int, String))]
+		writerMap = null
+		////////////////
+		for((k,samRegion) <- iWriterMap)
+		{
+			val t1 = System.currentTimeMillis
+			val chr = k._1
+			val reg = k._2
+			
+			val minPos = samRegion.getMinPos
+			val maxPos = samRegion.getMaxPos
+			val content = samRegion.getContent
+			val posContent = samRegion.getPositionsStr
+			var posInfoStr = ""
+			
+			// For positions /////////////////////////////////////////////////////
+			if ((posTotalBytes + posContent.size) > blockSize)
+			{
+				FileManager.writeWholeFile(config.getOutputFolder + "starPos/pos_" + x + "-" + posCurrentNum, posOutStr.toString, config)
+				posCurrentNum += 1
+				posOutStr.setLength(0)
+				posTotalBytes = 0
+				posInfoStr = "pos_" + x + "-" + posCurrentNum + ",0," + posContent.size
+			}
+			else
+			{
+				posInfoStr = "pos_" + x + "-" + posCurrentNum + "," + posTotalBytes + "," + (posTotalBytes + posContent.size)
+			}
+			posOutStr.append(posContent)
+			posTotalBytes += posContent.size
+			//////////////////////////////////////////////////////////////////////
+			if ((totalBytes + content.size) > 0)
+			{
+				//dbgStr.append("+writeWholeFile\t")
+				FileManager.writeWholeFile(config.getOutputFolder + "samChunks/chunk_" + x + "-" + currentNum, outStr.toString, config)
+				currentNum += 1
+				outStr.setLength(0)
+				totalBytes = 0
+				res.append(((chr, reg), ("chunk_" + x + "-" + currentNum + ",0," + content.size, samRegion.getSize, minPos, maxPos, posInfoStr)))
+			}
+			else
+			{
+				//dbgStr.append("-noWritingToWholeFile\t")
+				res.append(((chr, reg), ("chunk_" + x + "-" + currentNum + "," + totalBytes + "," + (totalBytes + content.size), samRegion.getSize, 
+					minPos, maxPos, posInfoStr)))
+			}
+			outStr.append(content)
+			totalBytes += content.size
+			//dbgStr.append((System.currentTimeMillis - t1).toString)
+		}
+		val t1 = System.currentTimeMillis
+		FileManager.writeWholeFile(config.getOutputFolder + "samChunks/chunk_" + x + "-" + currentNum, outStr.toString, config)
+		FileManager.writeWholeFile(config.getOutputFolder + "starPos/pos_" + x + "-" + posCurrentNum, posOutStr.toString, config)
+		dbgStr.append("\n" + (System.currentTimeMillis - t1).toString)
+		//LogWriter.dbgLog("bwa/" + x, t0, "*\tTime taken by each loop iteration for chunk making step = " + dbgStr, config)
+		LogWriter.dbgLog("star/" + x, "3\tSAM files uploaded to the HDFS. # of positions files = " + posCurrentNum + ", # of sam files = " + 
+			currentNum + "\n=============================================================================\n" + stdErrorSb.toString + 
+			"\n=============================================================================\n" + stdOutSb.toString, config)
+
+		return res.toArray
 
 	}
 
@@ -556,7 +706,7 @@ object SparkGA1
 				for(f <- fileInfoPerThread(thread))
 				{
 					val fileInfo = f.split(',')
-					contentArray(thread).append(FileManager.readPartialFile(config.getOutputFolder + "bwaPos/" + fileInfo(0), fileInfo(2).toInt, config).slice(fileInfo(1).toInt, fileInfo(2).toInt))
+					contentArray(thread).append(FileManager.readPartialFile(config.getOutputFolder + "starPos/" + fileInfo(0), fileInfo(2).toInt, config).slice(fileInfo(1).toInt, fileInfo(2).toInt))
 				}
 				// Multithreaded /////////////////////////////////////////////////
 					}
@@ -1181,6 +1331,49 @@ object SparkGA1
 		return cmdRes
 	}
 
+	def getPass1SJ(x:String, config:Configuration):Array[((Integer, Integer, Integer), String)] = {
+		var a = scala.collection.mutable.ArrayBuffer.empty[((Integer, Integer, Integer), String)]
+		var fileName = config.getTmpFolder() + x + "_SJ.out.tab"
+		val hdfsManager = new HDFSManager
+
+		if (config.getMode() != "local")
+			hdfsManager.download(x + "_SJ.out.tab", config.getOutputFolder + "pass1SJ/", config.getTmpFolder, false)
+
+		if (!Files.exists(Paths.get(fileName))){
+			LogWriter.dbgLog("star/" + x, "SJ download failed, returning an empty array", config)
+            return a.toArray
+		}
+			
+		
+		for (line <- Source.fromFile(fileName).getLines()) 
+		{
+			val e = line.split('\t')
+			val chr = e(0)
+			val start = e(1).toInt
+			var end = e(2).toInt
+			var chrNumber = config.getChrIndex(chr)
+					
+			a.append(((chrNumber, start, end), line))
+		}
+		// Delete temporary files
+		//comment for test: not delete sj files
+		//new File(fileName).delete()
+		
+		return a.toArray
+	}
+
+	/*Test*/
+	def lineToSJPair(line:String, config:Configuration):((Integer, Integer, Integer), String) ={
+		
+        val e = line.split('\t')
+		val chr = e(0)
+		val start = e(1).toInt
+		var end = e(2).toInt
+		var chrNumber = config.getChrIndex(chr)
+
+		return ((chrNumber, start, end), line)
+	}
+
 	def getVCF(chrRegion: String, config: Configuration) : Array[((Integer, Integer), String)] =
 	{
 		var a = scala.collection.mutable.ArrayBuffer.empty[((Integer, Integer), String)]
@@ -1219,6 +1412,59 @@ object SparkGA1
 		new File(fileName + ".idx").delete()
 		
 		return a.toArray
+	}
+
+	def regenerateGenome(x:Int, config:Configuration) : Int={
+		    val logName = "regenerationGenome.log"
+            var sjFile = ""
+			val hdfsManager = new HDFSManager
+			
+
+
+			if (config.getMode != "local"){
+			    hdfsManager.createIfRequired(config.getOutputFolder + "log/star/" + logName)
+				hdfsManager.download("mergedPass1_SJ.out.tab", config.getOutputFolder, config.getTmpFolder, false)
+				sjFile = config.getTmpFolder + "mergedPass1_SJ.out.tab"
+			
+		    }
+		   else{
+		       FileManager.makeDirIfRequired(config.getOutputFolder + "log/star", config)
+			   sjFile = config.getOutputFolder + "mergedPass1_SJ.out.tab"
+			}
+
+			val fastaFile = FileManager.getRefFileDire(config) + "ucsc.hg19.fasta"
+			
+			val tmpDir = config.getTmpFolder
+			val genomeDire = FileManager.getStarIndexLocalDire("2",config)
+			val progName = FileManager.getToolsDirPath(config) + "STAR "
+			val readLength = "100" //may optimize later
+			val sparseDistance = "8"//may optimize later
+		    val nthreads = config.getNumThreads
+			val outFilePrefix = tmpDir+"reGenerate_"
+
+			FileManager.cleanAndMakeLocalDir(genomeDire, config)
+
+			
+		   val command_str = progName + "--genomeDir "  + genomeDire + " --outFileNamePrefix " + outFilePrefix + 
+		                     " --runMode genomeGenerate --genomeFastaFiles " + fastaFile + " --sjdbFileChrStartEnd " + sjFile +
+							 " --sjdbOverhang " + readLength + " --runThreadN " + nthreads + " --genomeSAsparseD " + sparseDistance
+				
+	       LogWriter.dbgLog("star/" + logName, "*\tStarting the regeneration job: -> " + command_str, config)
+		
+		   var cmd_res = command_str.!
+
+		   LogWriter.dbgLog("star/" + logName, "*\tFinished regeneration.", config)
+
+
+           if (config.getMode != "local"){
+               hdfsManager.uploadFolder(genomeDire, config.getOutputFolder, true)   //TODO: may change it to false so this node doesn't need to download later
+               LogWriter.dbgLog("star/" + logName, "*\tUploaded new index to hdfs.", config)
+		   }
+		       
+		   if (config.getMode != "local")
+		       new File(sjFile).delete()   //TODO: delete log.out file
+
+		   return cmd_res
 	}
 		
 	def main(args: Array[String]) 
@@ -1346,7 +1592,7 @@ object SparkGA1
 
 				val inputData = sc.parallelize(inputArray, noPartition)
 
-				val testStarOutput = inputData.mapPartitionsWithIndex{ (index, iter) =>
+/*				val testStarOutput = inputData.mapPartitionsWithIndex{ (index, iter) =>
 				    if(iter.isEmpty){
 						Iterator[String]()
 					}
@@ -1369,33 +1615,87 @@ object SparkGA1
                         res
 					}
 				}
+				testAlign1Remove.collect 
 
+                val pass1SJArray = inputData.flatMap(x => getPass1SJ(x,config)).reduceByKey((a, b)=>a).sortByKey().map(_._2 + '\n').collect
 
-				val lockDirArray=testAlign1Remove.collect
-				val lockDir=lockDirArray(0)
+				val writer = {
+					if (config.getMode == "local")
+						new PrintWriter(config.getOutputFolder + "mergedPass1_SJ.out.tab")
+					else
+						hdfsManager.open(config.getOutputFolder + "mergedPass1_SJ.out.tab")
+				}
+				for(e <- pass1SJArray)
+					writer.write(e)
+				writer.close
+
+				val singleTask = sc.parallelize(1 to 1,1)
+				val regeneration = singleTask.map(x=>regenerateGenome(x,config)).collect */
+
+				val testStarAlign2 = inputData.mapPartitionsWithIndex{ (index, iter) =>
+				    if(iter.isEmpty){
+						Iterator[Array[((Integer, Integer), (String, Long, Int, Int, String))]]()
+					}
+					else{
+						FileManager.deleteSTARIndex("1",config) //delete 1st genome if in cluster mode
+                        starGenomeLoad("2", "LoadAndExit", index.toString, config)
+						iter.map(x=>starRun2(x, bcConfig.value))
+						//iter
+					}
+				}
+				val starOutput = testStarAlign2.flatMap(x=>x).collect
+				
+                
+				//may optimize with smaller inputData and use map
+				val testAlign2Remove = inputData.mapPartitionsWithIndex{ (index, iter) =>
+				    if(iter.isEmpty){
+						Iterator[String]()
+					}
+					else{
+						val directory=starGenomeLoad("2", "Remove", index.toString, config)
+						var res = for (e <- iter ) yield directory
+                        res
+					}
+				}
+				val starLocalFolderArray = testAlign2Remove.collect
+
+				val lockDir=starLocalFolderArray(0)
 				val testDelete = inputData.mapPartitionsWithIndex{ (index, iter) =>
 				    if(iter.isEmpty){
 						Iterator[String]()
 					}
 					else{
-                        deleteLockDirectory(lockDir,index.toString,config) 
+                        deleteStarLocalContent(lockDir,index.toString,config) 
 						iter
 					}
 				}
 				testDelete.collect
-				    
 
+                var starOutStr = new StringBuilder
+				for(e <- starOutput)
+				{
+					val chr = e._1._1
+					val reg = e._1._2
+					val fname = e._2._1
+					val reads = e._2._2
+					val minPos = e._2._3
+					val maxPos = e._2._4
+					val posFname = e._2._5
+				
+					starOutStr.append(chr + "\t" + reg + "\t" + fname + "\t" + reads + "\t" + minPos + "\t" + maxPos + "\t" + posFname + "\n")
+				}
+				    
+                FileManager.makeDirIfRequired(config.getOutputFolder + "starOut", config)
+			    FileManager.writeWholeFile(config.getOutputFolder + "starOut.txt", starOutStr.toString, config)
 				
 
 			}
-			//saiyi FileManager.makeDirIfRequired(config.getOutputFolder + "bwaOut", config)
-			//saiyi FileManager.writeWholeFile(config.getOutputFolder + "bwaOut.txt", bwaOutStr.toString, config)
 		}
 		else if (part == 2)
 		{
 			val input = ArrayBuffer.empty[((Integer, Integer), (String, Long, Int, Int, String))]
 			val s = scala.collection.mutable.Set.empty[(Integer, Integer)]
-			val inputLinesArray = FileManager.readWholeFile(config.getOutputFolder + "bwaOut.txt", config).split('\n')
+			val inputLinesArray = FileManager.readWholeFile(config.getOutputFolder + "starOut.txt", config).split('\n')
 				
 			for( x <- inputLinesArray)
 			{
